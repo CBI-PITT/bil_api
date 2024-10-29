@@ -39,11 +39,11 @@ def get_pyramid_images_connection(settings):
     connection = {}
     directory = settings.get('pyramids_images_location', 'location')
     tif_extension = settings.get('tif_loader', 'extension_type')
-    nifit_extension = settings.get('nifit_loader', 'extension_type')
+    nifti_extension = settings.get('nifti_loader', 'extension_type')
     for root, dirs, files in os.walk(directory):
         for dir in dirs:
-            if dir.endswith(nifit_extension):
-                extension_index = dir.rfind(nifit_extension)
+            if dir.endswith(nifti_extension):
+                extension_index = dir.rfind(nifti_extension)
                 hash_value = dir[:extension_index]
                 dir_path = os.path.join(root, dir)
                 connection[hash_value] = dir_path
@@ -129,8 +129,8 @@ class config:
             import terafly_loader
             self.opendata[key] = terafly_loader.terafly_loader(dataPath, squeeze=False,cache=self.cache)
         elif dataPath.lower().endswith('.nii.zarr') or dataPath.lower().endswith('.nii.gz'):
-            import nifit_loader
-            self.opendata[key] = nifit_loader.nifti_zarr_loader(dataPath, self.pyramid_images_connection,self.settings,squeeze=False,cache=self.cache)
+            import nifti_loader
+            self.opendata[key] = nifti_loader.nifti_zarr_loader(dataPath, self.pyramid_images_connection,self.settings,squeeze=False,cache=self.cache)
         ## Append extracted metadata as attribute to open dataset
         try:
             from utils import metaDataExtraction # Here to get around curcular import at BrAinPI init

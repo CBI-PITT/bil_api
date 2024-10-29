@@ -1,4 +1,3 @@
-import io
 import zarr, os, itertools
 import numpy as np
 import hashlib
@@ -14,7 +13,6 @@ Path = Union[str, bytes, None]
 StoreLike = Union[BaseStore, Store, MutableMapping]
 from logger_tools import logger
 import gc
-import threading
 import multiprocessing
 def niigz2niizarr(inp, out, time_axe):
     nii2zarr(inp, out, no_time=time_axe)
@@ -77,7 +75,7 @@ class nifti_zarr_loader:
         self.file_size = self.file_stat.st_size
         self.settings = settings
         self.allowed_file_size_gb = int(
-            self.settings.get("nifit_loader", "pyramids_images_allowed_store_size_gb")
+            self.settings.get("nifti_loader", "pyramids_images_allowed_store_size_gb")
         )
         self.allowed_file_size_byte = self.allowed_file_size_gb * 1024 * 1024 * 1024
         self.pyramid_dic = pyramid_images_connection
@@ -199,12 +197,12 @@ class nifti_zarr_loader:
     def pyramid_builders(self, nifti_file_location):
         hash_value = calculate_hash(self.file_ino + self.modification_time)
         pyramids_images_store = self.settings.get(
-            "nifit_loader", "pyramids_images_store"
+            "nifti_loader", "pyramids_images_store"
         )
         pyramids_images_store_dir = (
             pyramids_images_store + hash_value[0:2] + "/" + hash_value[2:4] + "/"
         )
-        suffix = self.settings.get("nifit_loader", "extension_type")
+        suffix = self.settings.get("nifti_loader", "extension_type")
         pyramid_image_location = pyramids_images_store_dir + hash_value + suffix
         if self.pyramid_dic.get(hash_value) and os.path.exists(pyramid_image_location):
             self.location = self.pyramid_dic.get(hash_value)
