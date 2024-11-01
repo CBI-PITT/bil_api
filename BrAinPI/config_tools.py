@@ -15,15 +15,23 @@ def calculate_hash(input_string):
 def get_config(file='settings.ini',allow_no_value=True):
     import configparser
     # file = os.path.join(os.path.split(os.path.abspath(__file__))[0],file)
-    file_path = os.path.join(sys.path[0], file)
-
+    # file_path = os.path.join(sys.path[0], file)
     # This condition is used for documentation generation through sphinx and readTheDoc, plz always have settings.ini.
-    if os.path.exists(file) is False:
-        file_path = os.path.join(sys.path[0], 'template_' + file)
-        print('sphinx generation',file)
+    # if os.path.exists(file) is False:
+    #     file_path = os.path.join(sys.path[0], 'template_' + file)
+    #     print('sphinx generation',file)
+    # config = configparser.ConfigParser(allow_no_value=allow_no_value)
+    # config.read(file_path)
+    # return config
+    dir_path = os.path.dirname(os.path.abspath(__file__))
+    file_path = os.path.join(dir_path, file)
+    if os.path.exists(file_path) is False:
+        file_path = os.path.join(dir_path, 'template_' + file)
+        print('sphinx generation',file_path)
     config = configparser.ConfigParser(allow_no_value=allow_no_value)
     config.read(file_path)
     return config
+    
 def get_pyramid_images_connection(settings):
     # os.makedirs(settings.get('tif_loader','pyramids_images_store'),exist_ok=True)
     # connection = {}
@@ -128,7 +136,7 @@ class config:
         elif dataPath.lower().endswith('.terafly'):
             import terafly_loader
             self.opendata[key] = terafly_loader.terafly_loader(dataPath, squeeze=False,cache=self.cache)
-        elif dataPath.lower().endswith('.nii.zarr') or dataPath.lower().endswith('.nii.gz'):
+        elif dataPath.lower().endswith('.nii.zarr') or dataPath.lower().endswith('.nii.gz') or dataPath.lower().endswith('.nii'):
             import nifti_loader
             self.opendata[key] = nifti_loader.nifti_zarr_loader(dataPath, self.pyramid_images_connection,self.settings,squeeze=False,cache=self.cache)
         ## Append extracted metadata as attribute to open dataset

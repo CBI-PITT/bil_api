@@ -1,10 +1,6 @@
 import tifffile
-import numpy as np
-from skimage import io, img_as_uint, img_as_ubyte, img_as_float32, img_as_float64
 import math
-from itertools import product
 from PIL import Image
-import io
 import zarr
 import os
 import config_tools
@@ -14,9 +10,6 @@ from flask import render_template
 from filelock import FileLock
 from pathlib import Path
 import shutil
-import sys
-from pympler import asizeof
-from zarr.storage import KVStore
 import gc
 from logger_tools import logger
 
@@ -70,15 +63,19 @@ class tiff_loader:
         self.file_ino = str(self.file_stat.st_ino)
         self.modification_time = str(self.file_stat.st_mtime)
         self.file_size = self.file_stat.st_size
-        self.allowed_file_size_gb = int(
+        self.allowed_store_size_gb = float(
             self.settings.get("tif_loader", "pyramids_images_allowed_store_size_gb")
+        )
+        self.allowed_store_size_byte = self.allowed_store_size_gb * 1024 * 1024 * 1024
+        self.allowed_file_size_gb = float(
+            self.settings.get("tif_loader", "pyramids_images_allowed_generation_size_gb")
         )
         self.allowed_file_size_byte = self.allowed_file_size_gb * 1024 * 1024 * 1024
         # with tifffile.TiffFile(self.datapath) as tif:
         #     self.image = tif
-        self.image = tifffile.TiffFile(self.datapath)
-        # self.image_ori = tifffile.TiffFile(self.datapath)
+        self.image = self.validate_tif_file(self.datapath)
         self.filename, self.filename_extension = self.file_extension_split()
+        # self.image_ori = tifffile.TiffFile(self.datapath)
         self.tags = self.image.pages[0].tags
         self.photometric = self.image.pages[0].photometric
         self.compression = self.image.pages[0].compression
@@ -150,43 +147,6 @@ class tiff_loader:
         else:
             list_tp = [0] * len(self.type)
         r = int(key[0])
-        # t = (
-        #     int(key[1])
-        #     if self.axes_value_dic.get("T") != 1
-        #     or self.axes_value_dic.get("Q") != 1
-        #     or self.axes_value_dic.get("I") != 1
-        #     else None
-        # )
-        # c = int(key[2]) if self.axes_value_dic.get("C") != 1 else None
-        # z = int(key[3]) if self.axes_value_dic.get("Z") != 1 else None
-        # y = int(key[4])
-        # x = int(key[5])
-        # tp = tuple(filter(lambda x: x is not None, (t, c, z)))
-        # tile_size_height = int(self.tile_size[0])
-        # tile_size_width = int(self.tile_size[1])
-        # index_tuple = tp + (
-        #     slice(y * tile_size_height, (y + 1) * tile_size_height),
-        #     slice(x * tile_size_width, (x + 1) * tile_size_width),
-        # )
-        # zarr_array = None
-        # if self.is_pyramidal:
-        #     zarr_array = self.image.aszarr(series=0, level=r)
-        # else:
-        #     zarr_array = self.image.aszarr(series=r, level=0)
-        # index_tuple = tp + (
-        #     slice(y * tile_size_height, (y + 1) * tile_size_height),
-        #     slice(x * tile_size_width, (x + 1) * tile_size_width),
-        # )
-        # print (index_tuple)
-        # # if self.datapath.endswith((".ome.tif", ".ome-tif", ".ome.tiff", ".ome-tiff")):
-        # #     zarr_array = self.image.aszarr(series=0, level=r)
-        # #     # zarr_array = tifffile.imread(self.datapath,aszarr=True,series=0,level=r)
-        # # elif self.datapath.endswith((".tif", ".tiff")):
-        # #     zarr_array = self.image.aszarr(series=0, level=r)
-        # #     # zarr_array = tifffile.imread(self.datapath,aszarr=True,series=r)
-        # zarr_store = zarr.open(zarr_array)
-        # result = zarr_store[index_tuple]
-        # return result
 
         if (
             self.axes_pos_dic.get("T") != None
@@ -238,12 +198,21 @@ class tiff_loader:
         # numpy_array = np.random.randint(0, 255, size=(256, 256, 3), dtype=np.uint8)
         # return numpy_array
 
-        cache_key = f"opsd_{self.file_ino + self.modification_time}-{key[0]}-{key[1]}-{key[2]}-{key[3]}-{key[4]}--{key[5]}"
+        cache_key = f"{self.file_ino + self.modification_time}-{key[0]}-{key[1]}-{key[2]}-{key[3]}-{key[4]}-{key[5]}"
         if self.cache is not None:
             self.cache.set(
                 cache_key, result, expire=None, tag=self.datapath, retry=True
             )
         return result
+
+    def validate_tif_file(self,file_path):
+        try:
+            # Attempt to load the file
+            img = tifffile.TiffFile(file_path)
+            return img
+        except Exception as e:
+            raise Exception(f"File '{file_path}' is not a valid tiff file. Error: {e}")
+
 
     def pyramid_validators(self, tif):
         inspector_result = self.pyramid_inspectors(tif)
@@ -252,6 +221,9 @@ class tiff_loader:
         if inspector_result:
             return
         else:
+            # logger.info(f'{self.file_size},{self.allowed_file_size_byte}')
+            if self.file_size > self.allowed_file_size_byte:
+                raise Exception(f"File '{self.filename}' can not generate pyramid structure. Due to resource constrait, {self.allowed_file_size_gb}GB and below are acceptable for generation process.")
             self.pyramid_builders(tif)
             return
 
@@ -361,7 +333,7 @@ class tiff_loader:
                         pyramids_images_store_dir,
                         pyramid_image_location,
                     )
-        self.image = tifffile.TiffFile(pyramid_image_location)
+        self.image = self.validate_tif_file(pyramid_image_location)
         self.is_pyramidal = True
 
     def pyramid_building_process(
@@ -464,10 +436,10 @@ class tiff_loader:
                     )
                     if (
                         get_directory_size(pyramids_images_store)
-                        > self.allowed_file_size_byte
+                        > self.allowed_store_size_byte
                     ):
                         delete_oldest_files(
-                            pyramids_images_store, self.allowed_file_size_byte
+                            pyramids_images_store, self.allowed_store_size_byte
                         )
                 else:
                     logger.info("file detected!")

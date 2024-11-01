@@ -398,7 +398,9 @@ def neuroglancer_dtypes():
         '.omezans', #Archived_Nested_Store
         '.omehans', #H5_Nested_Store
         '.zarr', #Custom multiscale zarr implementation
+        '.nii',
         '.nii.gz',
+        '.nii.zarr',
         # '.weave',
         # '.z_sharded'
         '.terafly'
@@ -449,7 +451,6 @@ def setup_neuroglancer(app, config):
 
     # get_server will only open 1 server if it does not already exist.
     if config.settings.getboolean('neuroglancer','use_local_server'):
-        logger.warning(config.settings.getboolean('neuroglancer','use_local_server'))
         from neuroglancer_server import get_server
         ng_server = get_server()
         config.ng_server = ng_server
@@ -468,7 +469,8 @@ def setup_neuroglancer(app, config):
         # See usage in tokenized_urls module
         logger.trace(request.path)
         path_split, datapath = get_html_split_and_associated_file_path(config,request)
-        
+        # logger.info(f'{path_split},{datapath}')
+
         # Test for different patterns
         # file_name_template = '{}-{}_{}-{}_{}-{}'
         # file_pattern = file_name_template.format('[0-9]+','[0-9]+','[0-9]+','[0-9]+','[0-9]+','[0-9]+')
@@ -487,30 +489,63 @@ def setup_neuroglancer(app, config):
             datapath = os.path.split(datapath)[0]
             # datapath = '/' + os.path.join(*datapath.split('/')[:-1])
             # datapath = os.path.join(*datapath.split('/')[:-1])
+
+        # elif utils.is_file_type(neuroglancer_dtypes(), datapath):
+        #     datapath = open_ng_dataset(config,datapath) # Ensures that dataset is open AND info_json is formed
+        #     link_to_ng = make_ng_link(config.opendata[datapath], request.path, config=config)
+        #     # redirect.html URLs are not necessary, but they facilitate the inclusion of gtag for google analytics
+        #     return render_template('redirect.html',gtag=config.settings.get('GA4','gtag'),
+        #                            redirect_url=link_to_ng,
+        #                            redirect_name='Neuroglancer',
+        #                            description=datapath)
+        #     # return redirect(link_to_ng) # Redirect browser to fully formed neuroglancer link
+
         elif utils.is_file_type(neuroglancer_dtypes(), datapath):
-            datapath = open_ng_dataset(config,datapath) # Ensures that dataset is open AND info_json is formed
-            link_to_ng = make_ng_link(config.opendata[datapath], request.path, config=config)
-            # redirect.html URLs are not necessary, but they facilitate the inclusion of gtag for google analytics
-            return render_template('redirect.html',gtag=config.settings.get('GA4','gtag'),
-                                   redirect_url=link_to_ng,
-                                   redirect_name='Neuroglancer',
-                                   description=datapath)
-            # return redirect(link_to_ng) # Redirect browser to fully formed neuroglancer link
+            view_path = request.path + "/ng_view"
+            file_name = datapath.split("/")[-1]
+            return render_template(
+                    "file_loading.html",
+                    # gtag=config.settings.get("GA4", "gtag"),
+                    redirect_url=view_path,
+                    redirect_name="Neuroglancer",
+                    description=datapath,
+                    file_name=file_name,
+                )
+        elif path_split[-1].endswith("ng_view"):
+            try:
+                path_split = tuple(part for part in path_split if part != "ng_view")
+                datapath = datapath.replace("/ng_view", "")
+                request.path = request.path.replace("/ng_view", "")
+                datapath = open_ng_dataset(config,datapath) # Ensures that dataset is open AND info_json is formed
+                link_to_ng = make_ng_link(config.opendata[datapath], request.path, config=config)
+                # redirect.html URLs are not necessary, but they facilitate the inclusion of gtag for google analytics
+                return render_template('redirect.html',gtag=config.settings.get('GA4','gtag'),
+                                    redirect_url=link_to_ng,
+                                    redirect_name='Neuroglancer',
+                                    description=datapath)
+                # return redirect(link_to_ng) # Redirect browser to fully formed neuroglancer link
+            except Exception as e:
+                    return render_template(
+                    "file_exception.html",
+                    gtag=config.settings.get("GA4", "gtag"),
+                    exception=e,
+                )
         else:
             return 'No path to neuroglancer supported dataset'
         
-        datapath = open_ng_dataset(config,datapath) # Ensures that dataset is open AND info_json is formed
+        # datapath = open_ng_dataset(config,datapath) # Ensures that dataset is open AND info_json is formed
         
         
         # Return 'info' json
         if path_split[-1] == 'info':
-            # return 'in'
-            b = io.BytesIO()
-            b.write(json.dumps(config.opendata[datapath].ng_json, indent=2, sort_keys=False).encode())
-            # b.write(json.dumps(config.opendata[datapath].ng_json).encode())
-            b.seek(0)
-            
-            return jsonify(config.opendata[datapath].ng_json)
+            try:
+                datapath = open_ng_dataset(config,datapath)
+                b = io.BytesIO()
+                b.write(json.dumps(config.opendata[datapath].ng_json, indent=2, sort_keys=False).encode())
+                # b.write(json.dumps(config.opendata[datapath].ng_json).encode())
+                b.seek(0)
+                
+                return jsonify(config.opendata[datapath].ng_json)
             # return send_file(
             #     b,
             #     as_attachment=False,
@@ -523,10 +558,16 @@ def setup_neuroglancer(app, config):
             #     download_name='info', # name needs to match chunk
             #     mimetype='application/octet-stream'
             # )
+            except Exception as e:
+                    return render_template(
+                    "file_exception.html",
+                    gtag=config.settings.get("GA4", "gtag"),
+                    exception=e,
+                )
         
         ## Serve neuroglancer raw-format files
         elif isinstance(match(file_pattern,path_split[-1]),Match_class):
-            
+            datapath = open_ng_dataset(config,datapath)
             # logger.info(request.path + '\n')
             
             x,y,z = path_split[-1].split('_')
@@ -545,7 +586,7 @@ def setup_neuroglancer(app, config):
                 key = f'ng_{datapath}-{res}-{x}-{y}-{z}'
                 img = config.cache.get(key, default=None, retry=True)
                 if img is not None:
-                    logger.info('cached encoded ng chunck found')
+                    logger.info('cached chunck found')
 
             if img is None:
                 img = config.opendata[datapath][
@@ -556,7 +597,7 @@ def setup_neuroglancer(app, config):
                     slice(y[0],y[1]),
                     slice(x[0],x[1])
                     ]
-
+                logger.info("chunck returned from disk")
                 while img.ndim > 4:
                     img = np.squeeze(img,axis=0)
 
@@ -565,9 +606,8 @@ def setup_neuroglancer(app, config):
                 img = encode_ng_file(img, config.opendata[datapath].ng_json['num_channels'])
 
                 if config.cache is not None:
-                    logger.info("ng chunked saved")
                     config.cache.set(key, img, expire=None, tag=datapath, retry=True)
-
+                    logger.info("chunk has been saved")
             #Flask return of bytesIO as file
             # return Response(response=img, status=200,
             #                 mimetype="application/octet_stream")

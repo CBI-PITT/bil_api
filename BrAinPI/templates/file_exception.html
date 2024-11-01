@@ -36,8 +36,9 @@
         padding: 30px; /* Add padding */
         border-radius: 10px; /* Rounded corners */
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Add shadow */
+        max-width: 50%;
       }
-      .warnexceptioning-img {
+      .exception-img {
         border-radius: 1%; /* Make the image round */
         box-shadow: 10px 10px 10px rgb(104, 81, 81); /* Add shadow to the image (right and bottom) */
         margin-bottom: 20px; /* Margin space below the image */
@@ -77,11 +78,11 @@
   <body>
     <div class="container">
       <img
-        src="{{ url_for('static', filename='images/file_read_exception.png')}}"
+        src="{{ url_for('static', filename='images/file_exception.png')}}"
         alt="Exception img"
         class="exception-img"
       />
-      <h1>Failed: File Read Exception Happened</h1>
+      <h1>Failed: Exception Happened</h1>
       <p><span class="exception">{{exception}}</span></p>
       <!-- <a href="#" class="button" onclick="history.back()">Go Back</a> -->
     </div>

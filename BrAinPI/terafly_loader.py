@@ -5,6 +5,7 @@ import re
 from v3dpy.terafly import TeraflyInterface
 from logger_tools import logger
 
+
 class terafly_loader:
     def __init__(
         self, location, ResolutionLevelLock=None, squeeze=True, cache=None
@@ -27,7 +28,8 @@ class terafly_loader:
         self.array = {}
         self.metaData = {}
         for res, file in enumerate(file_list):
-            self.array[res] = TeraflyInterface(file)
+            # print(file_list)
+            self.array[res] = self.validate_terafly_file(file)
             # get the numbers of channel and the data type
             if res == len(file_list) - 1:
                 self.dtype = str(self.array[res].get_sub_volume(0, 1, 0, 1, 0, 1).dtype)
@@ -51,32 +53,41 @@ class terafly_loader:
         logger.info(self.metaData)
 
     def extract_and_sort_by_multiplication(self, directory):
+        # entries = [
+        #     os.path.join(directory, entry)
+        #     for entry in os.listdir(directory)
+        #     if os.path.isdir(os.path.join(directory, entry))
+        # ]
+        # results = []
+
+        # pattern = r"^\D+(\d+)x(\d+)x(\d+)"
+
+        # # Extract numbers and their multiplication result
+        # for entry in entries:
+        #     filename = os.path.basename(entry)
+        #     match = re.match(pattern, filename)
+        #     if match:
+        #         num1 = int(match.group(1))
+        #         num2 = int(match.group(2))
+        #         num3 = int(match.group(3))
+        #         result = num1 * num2 * num3
+        #         results.append((entry, result))
+
+        # # Sort results by multiplication result in descending order
+        # results.sort(key=lambda x: x[1], reverse=True)
+
+        # # Return sorted full paths
+        # sorted_paths = [entry[0] for entry in results]
+        # return sorted_paths
         entries = [
             os.path.join(directory, entry)
             for entry in os.listdir(directory)
             if os.path.isdir(os.path.join(directory, entry))
         ]
-        results = []
 
-        pattern = r"^\D+(\d+)x(\d+)x(\d+)"
-
-        # Extract numbers and their multiplication result
-        for entry in entries:
-            filename = os.path.basename(entry)
-            match = re.match(pattern, filename)
-            if match:
-                num1 = int(match.group(1))
-                num2 = int(match.group(2))
-                num3 = int(match.group(3))
-                result = num1 * num2 * num3
-                results.append((entry, result))
-
-        # Sort results by multiplication result in descending order
-        results.sort(key=lambda x: x[1], reverse=True)
-
-        # Return sorted full paths
-        sorted_paths = [entry[0] for entry in results]
-        return sorted_paths
+        # Sort by length of the name first, then alphabetically for same length names
+        entries.sort(key=lambda x: (len(x), x), reverse=True)
+        return entries
 
     def change_resolution_lock(self, ResolutionLevelLock):
         self.ResolutionLevelLock = ResolutionLevelLock
@@ -175,6 +186,14 @@ class terafly_loader:
         if self.cache is not None:
             self.cache.set(key, result, expire=None, tag=self.location, retry=True)
         return result
+    
+    def validate_terafly_file(self, file_path):
+        try:
+            # Attempt to load the file
+            img = TeraflyInterface(file_path)
+            return img
+        except Exception as e:
+            raise Exception(f"File '{file_path}' is not a valid terafly file. Error: {e}")
 
 
 # import struct

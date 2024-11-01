@@ -3,6 +3,7 @@ import numpy as np
 import hashlib
 import shutil
 import time
+import nibabel as nib
 from filelock import FileLock
 from zarr.storage import NestedDirectoryStore
 from collections.abc import MutableMapping
@@ -14,6 +15,8 @@ StoreLike = Union[BaseStore, Store, MutableMapping]
 from logger_tools import logger
 import gc
 import multiprocessing
+
+
 def niigz2niizarr(inp, out, time_axe):
     nii2zarr(inp, out, no_time=time_axe)
 
@@ -70,12 +73,17 @@ class nifti_zarr_loader:
             0 if ResolutionLevelLock is None else ResolutionLevelLock
         )
         self.file_stat = os.stat(location)
+        self.filename = os.path.split(self.location)[1]
         self.file_ino = str(self.file_stat.st_ino)
         self.modification_time = str(self.file_stat.st_mtime)
         self.file_size = self.file_stat.st_size
         self.settings = settings
-        self.allowed_file_size_gb = int(
+        self.allowed_store_size_gb = float(
             self.settings.get("nifti_loader", "pyramids_images_allowed_store_size_gb")
+        )
+        self.allowed_store_size_byte = self.allowed_store_size_gb * 1024 * 1024 * 1024
+        self.allowed_file_size_gb = float(
+            self.settings.get("nifti_loader", "pyramids_images_allowed_generation_size_gb")
         )
         self.allowed_file_size_byte = self.allowed_file_size_gb * 1024 * 1024 * 1024
         self.pyramid_dic = pyramid_images_connection
@@ -85,7 +93,8 @@ class nifti_zarr_loader:
         self.cache = cache
         self.metaData = {}
         # Go through pyramid generation process for nii.gz files
-        if self.location.endswith(".nii.gz"):
+        if self.location.endswith(".nii.gz") or self.location.endswith(".nii"):
+            self.validate_nifti_file(self.location)
             self.pyramid_builders(self.location)
         # Open zarr store
         self.zarr_store = zarr_store_type  # Only relevant for non-s3 datasets
@@ -194,6 +203,15 @@ class nifti_zarr_loader:
         self.change_resolution_lock(self.ResolutionLevelLock)
         logger.info(self.metaData)
 
+    def validate_nifti_file(self, file_path):
+        if self.file_size > self.allowed_file_size_byte:
+                raise Exception(f"File '{self.filename}' can not generate pyramid structure. Due to resource constrait, {self.allowed_file_size_gb}GB and below are acceptable for generation process.")
+        try:
+            # Attempt to load the file
+            img = nib.load(file_path)
+        except Exception as e:
+            raise Exception(f"File '{file_path}' is not a valid nifti file. Error: {e}")
+
     def pyramid_builders(self, nifti_file_location):
         hash_value = calculate_hash(self.file_ino + self.modification_time)
         pyramids_images_store = self.settings.get(
@@ -270,10 +288,10 @@ class nifti_zarr_loader:
                     )
                     if (
                         get_directory_size(pyramids_images_store)
-                        > self.allowed_file_size_byte
+                        > self.allowed_store_size_byte
                     ):
                         delete_oldest_files(
-                            pyramids_images_store, self.allowed_file_size_byte
+                            pyramids_images_store, self.allowed_store_size_byte
                         )
                 else:
                     logger.info("File detected!")
