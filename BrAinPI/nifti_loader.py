@@ -173,7 +173,7 @@ class nifti_zarr_loader:
 
                 # Collect dataset info
                 self.metaData[r, t, c, "chunks"] = array.chunks[-3:]
-                dtype = array.dtype[0]
+                dtype = array.dtype
                 if dtype == "int8":
                     dtype = "uint8"
                 elif dtype == "int16":
