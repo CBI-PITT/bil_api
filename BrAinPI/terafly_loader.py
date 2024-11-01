@@ -193,6 +193,7 @@ class terafly_loader:
             img = TeraflyInterface(file_path)
             return img
         except Exception as e:
+            logger.info(f"File '{file_path}' is not a valid terafly file. Error: {e}")
             raise Exception(f"File '{file_path}' is not a valid terafly file. Error: {e}")
 
 

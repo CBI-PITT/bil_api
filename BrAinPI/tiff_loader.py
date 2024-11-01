@@ -211,6 +211,7 @@ class tiff_loader:
             img = tifffile.TiffFile(file_path)
             return img
         except Exception as e:
+            logger.info(f"File '{file_path}' is not a valid tiff file. Error: {e}")
             raise Exception(f"File '{file_path}' is not a valid tiff file. Error: {e}")
 
 
@@ -223,6 +224,7 @@ class tiff_loader:
         else:
             # logger.info(f'{self.file_size},{self.allowed_file_size_byte}')
             if self.file_size > self.allowed_file_size_byte:
+                logger.info(f"File '{self.filename}' can not generate pyramid structure. Due to resource constrait, {self.allowed_file_size_gb}GB and below are acceptable for generation process.")
                 raise Exception(f"File '{self.filename}' can not generate pyramid structure. Due to resource constrait, {self.allowed_file_size_gb}GB and below are acceptable for generation process.")
             self.pyramid_builders(tif)
             return

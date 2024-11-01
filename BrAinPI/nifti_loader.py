@@ -205,11 +205,13 @@ class nifti_zarr_loader:
 
     def validate_nifti_file(self, file_path):
         if self.file_size > self.allowed_file_size_byte:
+                logger.info(f"File '{self.filename}' can not generate pyramid structure. Due to resource constrait, {self.allowed_file_size_gb}GB and below are acceptable for generation process.")
                 raise Exception(f"File '{self.filename}' can not generate pyramid structure. Due to resource constrait, {self.allowed_file_size_gb}GB and below are acceptable for generation process.")
         try:
             # Attempt to load the file
             img = nib.load(file_path)
         except Exception as e:
+            logger.info(f"File '{file_path}' is not a valid nifti file. Error: {e}")
             raise Exception(f"File '{file_path}' is not a valid nifti file. Error: {e}")
 
     def pyramid_builders(self, nifti_file_location):
