@@ -168,7 +168,7 @@ def setup_auth(app):
 
 def setup_NO_auth(app):
     ## This import must remain here else circular import error
-    from BrAinPI import settings
+    from brain_api_main import settings
     from flask_limiter import Limiter
     from flask_limiter.util import get_remote_address
 
