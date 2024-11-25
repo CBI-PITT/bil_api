@@ -61,10 +61,10 @@ def separate_process_generation(
     data = np.zeros(jp2_img.shape, dtype=jp2_img.dtype)
     chunk_size = 10000
     # Process the image in chunks
-    logger.info("Chunks loading start...")
+    logger.success("Chunks loading start...")
     for row_start in range(0, height, chunk_size):
         for col_start in range(0, width, chunk_size):
-            logger.info(f"loading chunk {row_start}, {col_start}")
+            logger.success(f"loading chunk {row_start}, {col_start}")
             # Calculate chunk boundaries
             row_end = min(row_start + chunk_size, height)
             col_end = min(col_start + chunk_size, width)
@@ -74,7 +74,7 @@ def separate_process_generation(
             
             # Insert the chunk into the final array
             data[row_start:row_end, col_start:col_end] = chunk
-    logger.info(f"Entire data loading completed, shape {data.shape}")
+    logger.success(f"Entire data loading completed, shape {data.shape}")
     end_load = time.time()
     load_time = end_load - start_load
     logger.success(f"loading first series or level {datapath} time: {load_time}")
