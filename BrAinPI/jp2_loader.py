@@ -61,9 +61,10 @@ def separate_process_generation(
     data = np.zeros(jp2_img.shape, dtype=jp2_img.dtype)
     chunk_size = 10000
     # Process the image in chunks
+    logger.info("Chunks loading start...")
     for row_start in range(0, height, chunk_size):
         for col_start in range(0, width, chunk_size):
-            print(row_start,col_start)
+            logger.info(f"loading chunk {row_start}, {col_start}")
             # Calculate chunk boundaries
             row_end = min(row_start + chunk_size, height)
             col_end = min(col_start + chunk_size, width)
@@ -73,7 +74,7 @@ def separate_process_generation(
             
             # Insert the chunk into the final array
             data[row_start:row_end, col_start:col_end] = chunk
-    print(data.shape)
+    logger.info(f"Entire data loading completed, shape {data.shape}")
     end_load = time.time()
     load_time = end_load - start_load
     logger.success(f"loading first series or level {datapath} time: {load_time}")
@@ -203,7 +204,7 @@ class jp2_loader:
                 f"File '{self.filename}' can not generate pyramid structure. Due to resource constrait, {self.allowed_file_size_gb}GB and below are acceptable for generation process."
             )
         self.jp2_img = glymur.Jp2k(file_path)
-        glymur.set_option('lib.num_threads', 2)
+        glymur.set_option('lib.num_threads', 4)
         if len(self.jp2_img.shape)!=3 and self.jp2_img.shape[-1]!=3:
             raise TypeError("Jp2 image shape not supported")
         return self.jp2_img
