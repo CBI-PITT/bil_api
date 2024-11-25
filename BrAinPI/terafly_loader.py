@@ -188,13 +188,16 @@ class terafly_loader:
         return result
     
     def validate_terafly_file(self, file_path):
-        try:
-            # Attempt to load the file
-            img = TeraflyInterface(file_path)
-            return img
-        except Exception as e:
-            logger.info(f"File '{file_path}' is not a valid terafly file. Error: {e}")
-            raise Exception(f"File '{file_path}' is not a valid terafly file. Error: {e}")
+        img = TeraflyInterface(file_path)
+        return img
+        # try:
+        #     Attempt to load the file
+        #     img = TeraflyInterface(file_path)
+        #     return img
+        # except Exception as e:
+        #     logger.error(f"File '{file_path}' is not a valid terafly file. Error: {e}")
+        #     raise
+        #     raise Exception(f"File '{file_path}' is not a valid terafly file. Error: {e}")
 
 
 # import struct

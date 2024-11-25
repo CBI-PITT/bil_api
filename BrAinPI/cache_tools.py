@@ -6,8 +6,10 @@ import config_tools
 
 settings = config_tools.get_config()
 def get_cache():
-    ## Setup cache location based on OS type
-    ## Optional situations like machine name can be used to customize
+    '''
+    Setup cache location based on OS type
+    Optional situations like machine name can be used to customize
+    '''
     if os.name == 'nt':
         cacheLocation = settings.get('disk_cache', 'location_win')
     else:
@@ -28,6 +30,7 @@ def get_cache():
         #                              size_limit=cacheSizeBytes, eviction_policy=evictionPolicy)
         cache = FanoutCache(cacheLocation, shards=shards, timeout=timeout,
                            size_limit=cacheSizeBytes, eviction_policy=evictionPolicy)
+        print('INIT OF CACHE IN CONFIG CLASS')
         cache.close()
         return cache
 

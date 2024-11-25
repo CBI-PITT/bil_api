@@ -100,7 +100,7 @@
     </select>
     Channel
     <select id="channelSelect">
-      {% for channel in range(value) %}
+      {% for channel in range(channel) %}
       <option value="{{ channel }}" {% if channel==0 %} selected {% endif %}> {{ channel }}</option>
       {% endfor %}
     </select>
@@ -139,14 +139,18 @@
         height: parseInt('{{ height }}'),
         width: parseInt('{{ width }}'),
         tileSize: parseInt('{{ tileSize }}'),
+        // tileWidth: parseInt('{{tileWidth}}'),  // Use tileWidth from the tuple
+        // tileHeight: parseInt('{{tileHeight}}'), // Use tileHeight from the tuple
         minLevel: 0,
         maxLevel: maxLevel,
         getTileUrl: function (level, x, y) {
           var reversedLevel = maxLevel - level;
           // console.log(maxLevel,level)
+          // return "{{host}}/{{parent_url}}/" +
+          //   reversedLevel + "/" + t_point + "/" + channel + "/" + z_stack + "/" + y + "/" + x + "/" + "r" +
+          //   reversedLevel + "-t" + t_point + "-c" + channel + "-z" + z_stack + "-y" + y + "-x" + x + ".png";
           return "{{host}}/{{parent_url}}/" +
-            reversedLevel + "/" + t_point + "/" + channel + "/" + z_stack + "/" + y + "/" + x + "/" + "r" +
-            reversedLevel + "-t" + t_point + "-c" + channel + "-z" + z_stack + "-y" + y + "-x" + x + ".png";
+        reversedLevel + "/" + t_point + "/" + channel + "/" + z_stack  + "_" + (y * parseInt('{{ tileSize }}')) + "-" + ((y+1) * parseInt('{{ tileSize }}')) + "_" + (x * parseInt('{{ tileSize }}')) +"-"+ ((x+1) * parseInt('{{ tileSize }}'));
         }
       };
     }

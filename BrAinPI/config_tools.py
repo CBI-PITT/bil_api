@@ -79,7 +79,6 @@ class config:
         self.settings = get_config('settings.ini')
         self.pyramid_images_connection = get_pyramid_images_connection(self.settings)
         from cache_tools import get_cache
-        print('INIT OF CACHE IN CONFIG CLASS')
         self.cache = get_cache()
 
         def __del__(self):
@@ -139,10 +138,14 @@ class config:
         elif dataPath.lower().endswith('.nii.zarr') or dataPath.lower().endswith('.nii.gz') or dataPath.lower().endswith('.nii'):
             import nifti_loader
             self.opendata[key] = nifti_loader.nifti_zarr_loader(dataPath, self.pyramid_images_connection,self.settings,squeeze=False,cache=self.cache)
+        elif dataPath.lower().endswith('.jp2'):
+            import jp2_loader
+            self.opendata[key] = jp2_loader.jp2_loader(dataPath, self.pyramid_images_connection,self.settings,squeeze=False,cache=self.cache)
         ## Append extracted metadata as attribute to open dataset
         try:
             from utils import metaDataExtraction # Here to get around curcular import at BrAinPI init
             self.opendata[key].metadata = metaDataExtraction(self.opendata[key])
+            logger.info(self.opendata[key].metadata)
         except Exception:
             pass
 

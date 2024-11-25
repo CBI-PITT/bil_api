@@ -10,14 +10,15 @@ from collections.abc import MutableMapping
 from zarr._storage.store import Store, BaseStore
 from typing import Union
 from niizarr import nii2zarr
-Path = Union[str, bytes, None]
+# Path = Union[str, bytes, None]
+from pathlib import Path
 StoreLike = Union[BaseStore, Store, MutableMapping]
 from logger_tools import logger
 import gc
 import multiprocessing
 
 
-def niigz2niizarr(inp, out, time_axe):
+def separate_process_generation(inp, out, time_axe):
     nii2zarr(inp, out, no_time=time_axe)
 
 def calculate_hash(input_string):
@@ -67,13 +68,13 @@ class nifti_zarr_loader:
         squeeze=True,
         cache=None,
     ):
-
         self.location = location
+        self.datapath = location
         self.ResolutionLevelLock = (
             0 if ResolutionLevelLock is None else ResolutionLevelLock
         )
         self.file_stat = os.stat(location)
-        self.filename = os.path.split(self.location)[1]
+        self.filename = os.path.split(self.datapath)[1]
         self.file_ino = str(self.file_stat.st_ino)
         self.modification_time = str(self.file_stat.st_mtime)
         self.file_size = self.file_stat.st_size
@@ -93,13 +94,13 @@ class nifti_zarr_loader:
         self.cache = cache
         self.metaData = {}
         # Go through pyramid generation process for nii.gz files
-        if self.location.endswith(".nii.gz") or self.location.endswith(".nii"):
-            self.validate_nifti_file(self.location)
-            self.pyramid_builders(self.location)
+        if self.datapath.endswith(".nii.gz") or self.datapath.endswith(".nii"):
+            self.validate_nifti_file(self.datapath)
+            self.pyramid_builders(self.datapath)
         # Open zarr store
         self.zarr_store = zarr_store_type  # Only relevant for non-s3 datasets
         store = self.zarr_store_type(
-            self.location
+            self.datapath
         )
         zgroup = zarr.open(store)
         self.zattrs = zgroup.attrs
@@ -193,6 +194,8 @@ class nifti_zarr_loader:
                 except:
                     pass
             self.arrays[r] = array
+
+            # may not need
             shape_z = array.shape[self.dim_pos_dic["z"]]
             shape_y = array.shape[self.dim_pos_dic["y"]]
             shape_x = array.shape[self.dim_pos_dic["x"]]
@@ -207,12 +210,14 @@ class nifti_zarr_loader:
         if self.file_size > self.allowed_file_size_byte:
                 logger.info(f"File '{self.filename}' can not generate pyramid structure. Due to resource constrait, {self.allowed_file_size_gb}GB and below are acceptable for generation process.")
                 raise Exception(f"File '{self.filename}' can not generate pyramid structure. Due to resource constrait, {self.allowed_file_size_gb}GB and below are acceptable for generation process.")
-        try:
+        img = nib.load(file_path)
+        # try:
             # Attempt to load the file
-            img = nib.load(file_path)
-        except Exception as e:
-            logger.info(f"File '{file_path}' is not a valid nifti file. Error: {e}")
-            raise Exception(f"File '{file_path}' is not a valid nifti file. Error: {e}")
+            # img = nib.load(file_path)
+        # except Exception as e:
+            # logger.error(f"File '{file_path}' is not a valid nifti file. Error: {e}")
+            # raise
+            # raise Exception(f"File '{file_path}' is not a valid nifti file. Error: {e}")
 
     def pyramid_builders(self, nifti_file_location):
         hash_value = calculate_hash(self.file_ino + self.modification_time)
@@ -225,7 +230,7 @@ class nifti_zarr_loader:
         suffix = self.settings.get("nifti_loader", "extension_type")
         pyramid_image_location = pyramids_images_store_dir + hash_value + suffix
         if self.pyramid_dic.get(hash_value) and os.path.exists(pyramid_image_location):
-            self.location = self.pyramid_dic.get(hash_value)
+            self.datapath = self.pyramid_dic.get(hash_value)
             logger.info("Location replaced by generated pyramid image")
         else:
             # Avoid other gunicore workers to build pyramids images
@@ -234,7 +239,7 @@ class nifti_zarr_loader:
                     "Pyramid image was already built by first worker and picked up now by others"
                 )
                 self.pyramid_dic[hash_value] = pyramid_image_location
-                self.location = pyramid_image_location
+                self.datapath = pyramid_image_location
             # 1 hash exists but the pyramid images are deleted during server running
             # 2 no hash and no pyramid images (first time generation)
             else:
@@ -246,7 +251,7 @@ class nifti_zarr_loader:
                     pyramids_images_store_dir,
                     pyramid_image_location,
                 )
-        self.location = pyramid_image_location
+        self.datapath = pyramid_image_location
 
     def pyramid_building_process(
         self,
@@ -274,7 +279,7 @@ class nifti_zarr_loader:
                     # thread.join()
                     # print("thread complete!")
 
-                    process = multiprocessing.Process(target=niigz2niizarr, args=(nifti_file_location, file_temp, time_axe))
+                    process = multiprocessing.Process(target=separate_process_generation, args=(nifti_file_location, file_temp, time_axe))
                     process.start()
                     process.join()
                     logger.success("Process complete!")
@@ -301,7 +306,7 @@ class nifti_zarr_loader:
                         logger.warning('file_temp exist!')
                         os.remove(file_temp)
             self.pyramid_dic[hash_value] = pyramid_image_location
-            self.location = pyramid_image_location
+            self.datapath = pyramid_image_location
         except Exception as e:
             logger.error(f"An error occurred during generation process: {e}")
         finally:
@@ -372,7 +377,7 @@ class nifti_zarr_loader:
         self, name=None, typed=False, expire=None, tag=None, ignore=()
     ):
         if tag is None:
-            tag = self.location
+            tag = self.datapath
         return (
             self.cache.memorize(
                 name=name, typed=typed, expire=expire, tag=tag, ignore=ignore
@@ -390,8 +395,8 @@ class nifti_zarr_loader:
         incomingSlices = (r, t, c, z, y, x)
         logger.info(incomingSlices)
         if self.cache is not None:
-            key = f"{self.location}_getSlice_{str(incomingSlices)}"
-            # key = self.location + '_getSlice_' + str(incomingSlices)
+            key = f"{self.datapath}_getSlice_{str(incomingSlices)}"
+            # key = self.datapath + '_getSlice_' + str(incomingSlices)
             result = self.cache.get(key, default=None, retry=True)
             if result is not None:
                 logger.info(f"Returned from cache: {incomingSlices}")
@@ -415,11 +420,11 @@ class nifti_zarr_loader:
         result = result.astype(self.dtype)
         logger.info(result.shape)
         if self.cache is not None:
-            self.cache.set(key, result, expire=None, tag=self.location, retry=True)
+            self.cache.set(key, result, expire=None, tag=self.datapath, retry=True)
             # test = True
             # while test:
             #     # logger.info('Caching slice')
-            #     self.cache.set(key, result, expire=None, tag=self.location, retry=True)
+            #     self.cache.set(key, result, expire=None, tag=self.datapath, retry=True)
             #     if result == self.getSlice(*incomingSlices):
             #         test = False
 
@@ -427,7 +432,7 @@ class nifti_zarr_loader:
 
 
     def locationGenerator(self, res):
-        return os.path.join(self.location, self.dataset_paths[res])
+        return os.path.join(self.datapath, self.dataset_paths[res])
 
     def open_array(self, res):
         store = self.zarr_store_type(self.locationGenerator(res))
