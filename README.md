@@ -14,7 +14,7 @@ conda activate brainpi
 
 git clone https://github.com/CBI-PITT/BrAinPI.git
 pip install -e /path/to/cloned/repo/
-
+conda install -c conda-forge glymur
 ## Before running BrAinPI
 
 '''
