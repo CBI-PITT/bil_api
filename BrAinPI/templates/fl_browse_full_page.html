@@ -44,7 +44,7 @@
               <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false"> Path </a>
               <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
                   {% for path in current_path['all_parents'] %}
-                  <li><a class="dropdown-item" href="{{ path[1] }}">{{ path[0] }}</a></li>
+                  <li><a class="dropdown-item" href="{{ path[1] }}" style="color: #212529 !important">{{ path[0] }}</a></li>
                   {% endfor %}
               </ul>
             </li>
