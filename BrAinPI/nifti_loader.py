@@ -16,44 +16,44 @@ StoreLike = Union[BaseStore, Store, MutableMapping]
 from logger_tools import logger
 import gc
 import multiprocessing
-
+from utils import calculate_hash, get_directory_size, delete_oldest_files
 
 def separate_process_generation(inp, out, time_axe):
     nii2zarr(inp, out, no_time=time_axe)
 
-def calculate_hash(input_string):
-    # Calculate the SHA-256 hash of the input string
-    hash_result = hashlib.sha256(input_string.encode()).hexdigest()
-    return hash_result
+# def calculate_hash(input_string):
+#     # Calculate the SHA-256 hash of the input string
+#     hash_result = hashlib.sha256(input_string.encode()).hexdigest()
+#     return hash_result
 
 
-def get_directory_size(directory):
-    total_size = 0
-    for dirpath, dirnames, filenames in os.walk(directory):
-        for f in filenames:
-            fp = os.path.join(dirpath, f)
-            total_size += os.path.getsize(fp)
-    return total_size
+# def get_directory_size(directory):
+#     total_size = 0
+#     for dirpath, dirnames, filenames in os.walk(directory):
+#         for f in filenames:
+#             fp = os.path.join(dirpath, f)
+#             total_size += os.path.getsize(fp)
+#     return total_size
 
 
-def delete_oldest_files(directory, size_limit):
-    items = sorted(Path(directory).glob("*"), key=os.path.getctime)
-    total_size = get_directory_size(directory)
+# def delete_oldest_files(directory, size_limit):
+#     items = sorted(Path(directory).glob("*"), key=os.path.getctime)
+#     total_size = get_directory_size(directory)
 
-    # Delete oldest items until the total size is within the size limit
-    for item in items:
-        if total_size <= size_limit:
-            break
-        if item.is_file():
-            item_size = os.path.getsize(item)
-            os.remove(item)
-            total_size -= item_size
-            logger.success(f"Deleted file {item} of size {item_size} bytes")
-        elif item.is_dir():
-            dir_size = get_directory_size(item)
-            shutil.rmtree(item)
-            total_size -= dir_size
-            logger.success(f"Deleted directory {item} of size {dir_size} bytes")
+#     # Delete oldest items until the total size is within the size limit
+#     for item in items:
+#         if total_size <= size_limit:
+#             break
+#         if item.is_file():
+#             item_size = os.path.getsize(item)
+#             os.remove(item)
+#             total_size -= item_size
+#             logger.success(f"Deleted file {item} of size {item_size} bytes")
+#         elif item.is_dir():
+#             dir_size = get_directory_size(item)
+#             shutil.rmtree(item)
+#             total_size -= dir_size
+#             logger.success(f"Deleted directory {item} of size {dir_size} bytes")
 
 
 class nifti_zarr_loader:

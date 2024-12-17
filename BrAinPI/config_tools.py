@@ -1,30 +1,40 @@
 
 import os
-import sys
 import imaris_ims_file_reader as ims
 # Import zarr stores
 from zarr.storage import NestedDirectoryStore
 from zarr_stores.archived_nested_store import Archived_Nested_Store
 from zarr_stores.h5_nested_store import H5_Nested_Store
-# import tiff_loader
 import hashlib
-def calculate_hash(input_string):
-    # Calculate the SHA-256 hash of the input string
-    hash_result = hashlib.sha256(input_string.encode()).hexdigest()
-    return hash_result
+
+# def calculate_hash(input_string):
+#     """
+#     Calculate the SHA-256 hash of the input string
+#     """
+#     hash_result = hashlib.sha256(input_string.encode()).hexdigest()
+#     return hash_result
+
 def get_config(file='settings.ini',allow_no_value=True):
+    """
+    Load configuration settings from the created setting.ini file.
+
+    This function reads configuration settings from a specified INI file.
+    Including support for Sphinx documentation generation if the file does not 
+    exist, it will fall back to a template version of the file.
+    It is primarily used for loading settings.
+
+    Args:
+        file (str, optional): The name of the INI file to load. Defaults to 'settings.ini'.
+        allow_no_value (bool, optional): Whether to allow keys without values in the INI file. 
+                                         Defaults to True.
+
+    Returns:
+        configparser.ConfigParser: A ConfigParser object containing the parsed configuration.
+    """
     import configparser
-    # file = os.path.join(os.path.split(os.path.abspath(__file__))[0],file)
-    # file_path = os.path.join(sys.path[0], file)
-    # This condition is used for documentation generation through sphinx and readTheDoc, plz always have settings.ini.
-    # if os.path.exists(file) is False:
-    #     file_path = os.path.join(sys.path[0], 'template_' + file)
-    #     print('sphinx generation',file)
-    # config = configparser.ConfigParser(allow_no_value=allow_no_value)
-    # config.read(file_path)
-    # return config
     dir_path = os.path.dirname(os.path.abspath(__file__))
     file_path = os.path.join(dir_path, file)
+    # This condition is used for documentation generation through sphinx and readTheDoc, plz always have settings.ini.
     if os.path.exists(file_path) is False:
         file_path = os.path.join(dir_path, 'template_' + file)
         print('sphinx generation',file_path)
@@ -33,35 +43,46 @@ def get_config(file='settings.ini',allow_no_value=True):
     return config
     
 def get_pyramid_images_connection(settings):
-    # os.makedirs(settings.get('tif_loader','pyramids_images_store'),exist_ok=True)
-    # connection = {}
-    # directory = settings.get('tif_loader', 'pyramids_images_store')
-    # extension_type = settings.get('tif_loader', 'extension_type')
-    # for root, dirs, files in os.walk(directory):
-    #     for file in files:
-    #         if file.endswith(extension_type):
-    #             extension_index = file.rfind(extension_type)
-    #             hash_value = file[:extension_index]
-    #             file_path = os.path.join(root, file)
-    #             connection[hash_value] = file_path
+    """
+    Build a connection mapping for pyramid image directories and files.
+
+    This function walks through a specified directory (from settings) to locate 
+    NIfTI and TIFF files/directories based on their extensions. It builds a 
+    mapping of unique hash values (derived from files) to their corresponding paths.
+
+    Args:
+        settings (configparser.ConfigParser): A configuration object containing 
+        location of generated pyramid files.
+
+    Returns:
+        dict: A dictionary where keys are hash values (file or directory names
+              without extensions) and values are their full paths.
+
+    """
     connection = {}
+    dict_extension = set()
+    file_extension = set()
     directory = settings.get('pyramids_images_location', 'location')
     tif_extension = settings.get('tif_loader', 'extension_type')
     nifti_extension = settings.get('nifti_loader', 'extension_type')
+    jp2_extension = settings.get('jp2_loader', 'extension_type')
+    dict_extension.update([nifti_extension])
+    file_extension.update([tif_extension,jp2_extension])
     for root, dirs, files in os.walk(directory):
         for dir in dirs:
-            if dir.endswith(nifti_extension):
-                extension_index = dir.rfind(nifti_extension)
-                hash_value = dir[:extension_index]
+            dir_matching_ext = next((ext for ext in dict_extension if dir.endswith(ext)), None)
+            if dir_matching_ext:
+                dir_extension_index = dir.rfind(dir_matching_ext)
+                hash_value = dir[:dir_extension_index]
                 dir_path = os.path.join(root, dir)
                 connection[hash_value] = dir_path
         for file in files:
-            if file.endswith(tif_extension):
-                extension_index = file.rfind(tif_extension)
-                hash_value = file[:extension_index]
+            file_matching_ext = next((ext for ext in file_extension if file.endswith(ext)), None)
+            if file_matching_ext:
+                file_extension_index = file.rfind(file_matching_ext)
+                hash_value = file[:file_extension_index]
                 file_path = os.path.join(root, file)
                 connection[hash_value] = file_path
-                break
     # print(connection)
     return connection
 class config:
