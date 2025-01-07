@@ -40,11 +40,28 @@ import blosc
 import hashlib
 
 def calculate_hash(input_string):
-    # Calculate the SHA-256 hash of the input string
+    """
+    Calculate the SHA-256 hash of a given string.
+
+    Args:
+        input_string (str): The string to hash.
+
+    Returns:
+        str: The resulting hash in hexadecimal format.
+    """
     hash_result = hashlib.sha256(input_string.encode()).hexdigest()
     return hash_result       
 
 def get_directory_size(directory):
+    """
+    Calculate the total size of all files in a directory.
+
+    Args:
+        directory (str): The directory path.
+
+    Returns:
+        int: The total size of the directory in bytes.
+    """
     total_size = 0
     for dirpath, dirnames, filenames in os.walk(directory):
         for f in filenames:
@@ -54,6 +71,13 @@ def get_directory_size(directory):
 
 
 def delete_oldest_files(directory, size_limit):
+    """
+    Delete the oldest files in a directory until the total size is within the specified limit.
+
+    Args:
+        directory (str): The directory path.
+        size_limit (int): The maximum allowable size in bytes.
+    """
     items = sorted(Path(directory).glob("*"), key=os.path.getctime)
     total_size = get_directory_size(directory)
 
@@ -77,6 +101,12 @@ def format_file_size(in_bytes):
     returns a tuple (number, suffix, sortindex) eg (900,GB,2) 
     the table hack will sort by the sort index then the number otherwise
     3 GB will be 'smaller' than 5 kB
+
+    Args:
+        in_bytes (int): The file size in bytes.
+
+    Returns:
+        tuple: A tuple containing the formatted size, suffix, and sort index.
     '''
     suffixes = ('B','KB','MB','GB','TB','PB')
     a = 0
@@ -113,6 +143,16 @@ import gevent
 
 
 def get_file_size(path, parent=None):
+    """
+    Get the size of a file.
+
+    Args:
+        path (str): The file path.
+        parent (str, optional): Parent directory (used for S3). Defaults to None.
+
+    Returns:
+        int: The size of the file in bytes.
+    """
     if 's3://' in path:
         if s3_utils.s3_isfile(path):
             p, f = s3_utils.s3_path_split(path)
@@ -125,6 +165,16 @@ def get_file_size(path, parent=None):
         return os.stat(path).st_size
 
 def num_dirs_files(path,skip_s3=True):
+    """
+    Count the number of directories and files in a given path.
+
+    Args:
+        path (str): The directory path.
+        skip_s3 (bool, optional): Whether to skip S3 directories. Defaults to True.
+
+    Returns:
+        tuple: A tuple containing the number of directories and files.
+    """
     # skip_s3 if passed to get_dir_contents will ignore contents
     # Getting this information from large remote s3 stores can be very slow on the first try
     # however after caching, it is much faster.
@@ -133,6 +183,15 @@ def num_dirs_files(path,skip_s3=True):
 
 
 def get_mod_time(path):
+    """
+    Get the last modification time of a file or directory.
+
+    Args:
+        path (str): The path to the file or directory.
+
+    Returns:
+        datetime.datetime: The modification time.
+    """
     if 's3://' in path:
         if s3_utils.s3_isfile(path):
             p, f = s3_utils.s3_path_split(path)
@@ -145,6 +204,15 @@ def get_mod_time(path):
         return os.stat(path).st_mtime
 
 def list_all_contents(path):
+    """
+    List all contents (files and directories) of a given path.
+
+    Args:
+        path (str): The directory path.
+
+    Returns:
+        list: A list of all files and directories in the path.
+    """
     parent, dirs, files = get_dir_contents(path)
     dirs = [os.path.join(parent,x) for x in dirs]
     files = [os.path.join(parent, x) for x in files]
@@ -156,6 +224,15 @@ def list_all_contents(path):
     #     return glob.glob(os.path.join(path,'*'))
 
 def isdir(path):
+    """
+    Check if a path is a directory.
+
+    Args:
+        path (str): The path to check.
+
+    Returns:
+        bool: True if the path is a directory, False otherwise.
+    """
     # if 's3://' in path:
     #     return s3.isdir(path)
     if 's3://' in path:
@@ -164,18 +241,46 @@ def isdir(path):
         return os.path.isdir(path)
 
 def isfile(path):
+    """
+    Check if a path is a file.
+
+    Args:
+        path (str): The path to check.
+
+    Returns:
+        bool: True if the path is a file, False otherwise.
+    """
     if 's3://' in path:
         return s3_utils.s3_isfile(path)
     else:
         return os.path.isfile(path)
 
 def exists(path):
+    """
+    Check if a path exists.
+
+    Args:
+        path (str): The path to check.
+
+    Returns:
+        bool: True if the path exists, False otherwise.
+    """
     if 's3://' in path:
         return s3_utils.s3_exists(path)
     else:
         return os.path.exists(path)
 
 def get_dir_contents(path,skip_s3=False):
+    """
+    Get the contents of a directory, including subdirectories and files.
+
+    Args:
+        path (str): The directory path.
+        skip_s3 (bool, optional): Whether to skip S3 directories. Defaults to False.
+
+    Returns:
+        tuple: A tuple containing the parent directory, subdirectories, and files.
+    """
     if 's3://' in path:
         if skip_s3:
             return path, [], []
@@ -187,6 +292,15 @@ def get_dir_contents(path,skip_s3=False):
 
 url_template = 'https://{}.s3.amazonaws.com/{}'
 def send_file(path):
+    """
+    Send a file as a Flask response.
+
+    Args:
+        path (str): The file path.
+
+    Returns:
+        Flask response: A file response for downloading or redirecting.
+    """
     if 's3://' in path:
         bucket, path_split = s3_utils.s3_get_bucket_and_path_parts(path)
         return redirect(
@@ -202,6 +316,16 @@ def get(location,baseURL):
     return data
 
 def conv_np_dtypes(array,tdtype):
+    """
+    Convert the data type of a numpy array.
+
+    Args:
+        array (np.ndarray): The numpy array to convert.
+        tdtype (str or np.dtype): The target data type.
+
+    Returns:
+        np.ndarray: The array with the converted data type.
+    """
     if array.dtype == tdtype:
         return array
     if tdtype == 'uint8' or tdtype == np.dtype('uint8'):
@@ -217,6 +341,12 @@ def compress_np(nparr):
     """
     Receives a numpy array,
     Returns a compressed bytestring, uncompressed and the compressed byte size.
+
+    Args:
+        nparr (np.ndarray): The numpy array to compress.
+
+    Returns:
+        tuple: A tuple containing the compressed bytestring, uncompressed size, and compressed size.
     """
 
     bytestream = io.BytesIO()
@@ -230,6 +360,12 @@ def uncompress_np(bytestring):
     """
     Receives a compressed bytestring,
     Returns a numpy array.
+
+    Args:
+        bytestring (bytes): The compressed bytestring.
+
+    Returns:
+        np.ndarray: The decompressed numpy array.
     """
 
     array = blosc.decompress(bytestring)
@@ -238,6 +374,15 @@ def uncompress_np(bytestring):
     return np.load(array)
 
 def split_html(req_path):
+    """
+    Split an HTML request path into parts.
+
+    Args:
+        req_path (str): The request path.
+
+    Returns:
+        tuple: A tuple of non-empty parts of the path.
+    """
     html_path = req_path.split('/')
     return tuple((x for x in html_path if x != '' ))
 
@@ -246,10 +391,14 @@ def is_file_type(file_type, path):
     '''
     file_type is file extension starting with '.'
     Examples: '.ims', '.tiff', '.nd2'
-    
     if file_type is a list of types return True if even 1 match ['.ims','.tif','.nd2']
     
-    return bool
+    Args:
+        file_type (str or list): The file extension(s) to check (e.g., ".ims", ".tiff").
+        path (str): The file path.
+
+    Returns:
+        bool: True if the file matches one of the types, False otherwise.
     '''
     
     #orig_path = path
@@ -262,12 +411,34 @@ def is_file_type(file_type, path):
     return any( ( path.lower().endswith(x.lower()) for x in file_type ) )
 
 def from_html_to_path(req_path, path_map):
+    """
+    Convert an HTML path to a file system path.
+
+    Args:
+        req_path (str): The HTML request path.
+        path_map (dict): A mapping of HTML paths to file system paths.
+
+    Returns:
+        str: The corresponding file system path.
+    """
     html_path = split_html(req_path)
     return os.path.join(
         path_map[html_path[1]], # returns the true FS path
         *html_path[2:]) # returns a unpacked list of all subpaths from html_path[1]
 
 def from_path_to_html(path, path_map, req_path, entry_point):
+    """
+    Convert a file system path to an HTML path.
+
+    Args:
+        path (str): The file system path.
+        path_map (dict): A mapping of file system paths to HTML paths.
+        req_path (str): The request path.
+        entry_point (str): The entry point for the HTML path.
+
+    Returns:
+        str: The corresponding HTML path.
+    """
     html_path = split_html(req_path)
     if len(html_path) == 1:
         return path.replace(path_map[html_path[0]],entry_point)
@@ -275,11 +446,19 @@ def from_path_to_html(path, path_map, req_path, entry_point):
         return path.replace(path_map[html_path[1]],entry_point + html_path[1])
 
 def dict_key_value_match(a_dict,key_or_value,specific=True):
-    '''
+    """
     Searches both key and values in dict and return the corresponding value
     Key --> value
     value --> key
-    '''
+
+    Args:
+        a_dict (dict): The dictionary to search.
+        key_or_value (str): The key or value to find.
+        specific (bool, optional): Whether to match exactly or allow partial matches. Defaults to True.
+
+    Returns:
+        str: The matching value or key.
+    """
 
     if key_or_value in a_dict:
         return a_dict[key_or_value]
@@ -299,12 +478,36 @@ def dict_key_value_match(a_dict,key_or_value,specific=True):
 
 
 def strip_leading_slashs(string):
+    """
+    Remove leading slashes from a string.
+
+    Args:
+        string (str): The input string.
+
+    Returns:
+        str: The string without leading slashes.
+
+    Raises:
+        AssertionError: If the input is not a string.
+    """
     assert isinstance(string,str), 'Must pass a string'
     while string[0] == '/' or string[0] == '\\':
         string = string[1:]
     return string
 
 def strip_trailing_slashs(string):
+    """
+    Remove trailing slashes from a string.
+
+    Args:
+        string (str): The input string.
+
+    Returns:
+        str: The string without trailing slashes.
+
+    Raises:
+        AssertionError: If the input is not a string.
+    """
     assert isinstance(string,str), 'Must pass a string'
     # while string[-1] == '/' or string[0] == '\\':
     while string[-1] == '/' or string[-1] == '\\':
@@ -312,11 +515,29 @@ def strip_trailing_slashs(string):
     return string
 
 def strip_leading_trailing_slash(string):
+    """
+    Remove both leading and trailing slashes from a string.
+
+    Args:
+        string (str): The input string.
+
+    Returns:
+        str: The string without leading and trailing slashes.
+    """
     string = strip_leading_slashs(string)
     string = strip_trailing_slashs(string)
     return string
 
 def clean_double_slash_in_html(string):
+    """
+    Replace double slashes in an HTML path with single slashes.
+
+    Args:
+        string (str): The HTML path.
+
+    Returns:
+        str: The cleaned HTML path.
+    """
     start = ''
     if string[0:6] == 'https:':
         start = 'https://'
@@ -336,9 +557,17 @@ def clean_double_slash_in_html(string):
 
 
 def from_path_to_browser_html(path, path_map, html_base):
-    '''
+    """
     Take a file system path and return a html browser location
-    '''
+
+    Args:
+        path (str): The file system path.
+        path_map (dict): A mapping of file system paths to HTML paths.
+        html_base (str): The HTML base path.
+
+    Returns:
+        str: The browser-compatible HTML path.
+    """
     matches = {}
     for key, value in path_map.items():
         if value in path:
@@ -365,9 +594,16 @@ def from_path_to_browser_html(path, path_map, html_base):
     return html_path
 
 def get_base_paths(settings_config_parser_object,user_authenticated=False):
-    '''
+    """
     Returns a list of directories that users are authorized to see
-    '''
+
+    Args:
+        settings_config_parser_object (configparser.ConfigParser): The settings object.
+        user_authenticated (bool, optional): Whether the user is authenticated. Defaults to False.
+
+    Returns:
+        list: A list of authorized base paths.
+    """
     ## Grab anon paths from settings file
     paths = []
     for ii in settings_config_parser_object['dir_anon']:
@@ -383,9 +619,20 @@ def get_base_paths(settings_config_parser_object,user_authenticated=False):
     return paths
     
 def get_path_map(settings_config_parser_object,user_authenticated=False):
-    '''
+    """
     Returns a dict where key=path_common_name and value=actual_file_system_path
-    '''
+    Generate a mapping of path aliases to actual file system paths based on user authentication status.
+
+    Args:
+        settings_config_parser_object (configparser.ConfigParser): 
+            A settings configuration object containing 'dir_anon' and 'dir_auth' sections.
+        user_authenticated (bool, optional): 
+            A flag indicating whether the user is authenticated. Defaults to False.
+
+    Returns:
+        dict: A dictionary where keys are path aliases (common names) and values are 
+              the corresponding actual file system paths.
+    """
     path_map = {}
     ## Collect anon paths
     for ii in settings_config_parser_object['dir_anon']:
@@ -399,6 +646,16 @@ def get_path_map(settings_config_parser_object,user_authenticated=False):
     return path_map
 
 def get_html_split_and_associated_file_path(config,request):
+    """
+    Get the split HTML path and the associated file system path.
+
+    Args:
+        config (object): Configuration settings.
+        request (Flask.Request): The Flask request object.
+
+    Returns:
+        tuple: A tuple containing the split HTML path and the file system path.
+    """
     settings = config.settings
     path_map = get_path_map(settings,user_authenticated=True) #<-- Force user_auth=True to get all possible paths, in this way all ng links will be shareable to anyone
     datapath = from_html_to_path(request.path, path_map)
@@ -409,19 +666,32 @@ def get_html_split_and_associated_file_path(config,request):
     
     
 def prettyPrintDict(aDict):
+    """
+    Print a dictionary in a human-readable table format.
+
+    Args:
+        aDict (dict): The dictionary to print.
+    """
     logger.info('{}{}{}'.format('Number'.ljust(10),'Name'.ljust(20),'File'))
     for k,v in aDict.items():
         logger.info('{}{}{}'.format(k.ljust(10),v[0].ljust(20),v[1]))
     
     
 def metaDataExtraction(numpy_like_object,strKey=False):
-    '''
+    """
     Function take a 5D numpy_like_object that includes the parameters
     'chunks','ResolutionLevels','TimePoints','Channels','metaData'
     
     metaData is a dict with tuple keys of types (int,int,int,str) 
     specifying (resolution_level,TimePoint,Channel,information_type)
-    '''
+
+    Args:
+        numpy_like_object: A 5D numpy-like object containing metadata.
+        strKey (bool, optional): Whether to convert keys to strings. Defaults to False.
+
+    Returns:
+        dict: Extracted metadata.
+    """
     metadata = {
         'shape':numpy_like_object.shape,
         'chunks':numpy_like_object.chunks,
@@ -452,6 +722,15 @@ def metaDataExtraction(numpy_like_object,strKey=False):
     return metadata
 
 def fix_special_characters_in_html(html_string):
+    """
+    Replace special characters in an HTML string with their encoded equivalents.
+
+    Args:
+        html_string (str): The HTML string.
+
+    Returns:
+        str: The cleaned HTML string.
+    """
     # Replace space with %20 (' ')
     #tmp_string = html_string.replace(' ', '%20')
     for key,item in url_special_char_dict.items():
@@ -459,21 +738,49 @@ def fix_special_characters_in_html(html_string):
     return html_string
 
 def strip_trailing_new_line(string):
+    """
+    Remove trailing newline characters (`\n`) from a string.
+
+    This function iteratively removes newline characters from the end of a string
+    until no more trailing newlines remain.
+
+    Args:
+        string (str): The input string.
+
+    Returns:
+        str: The string without trailing newline characters.
+    """
     while string[-1] == '\n':
         string = string[:-1]
     return string
 
 def clean_html(string):
-    '''
+    """
     Removes double slashes and encodes html to return a string that can be used by a browser
-    '''
+
+    Args:
+        string (str): The HTML string.
+
+    Returns:
+        str: The cleaned and encoded HTML string.
+    """
     string = strip_trailing_new_line(string)
     string = clean_double_slash_in_html(string)
     string = url_encode(string)
     return string
 
 def compress_flask_response(response, request, compression_level=6):
+    """
+    Compress a Flask response using gzip.
 
+    Args:
+        response (Flask.Response): The Flask response object.
+        request (Flask.Request): The Flask request object.
+        compression_level (int, optional): The gzip compression level. Defaults to 6.
+
+    Returns:
+        Flask.Response: The compressed response.
+    """
     if response.direct_passthrough:
         return response
 
@@ -493,10 +800,10 @@ def compress_flask_response(response, request, compression_level=6):
 
 
 def getFromDataset(dataset,res,t,c,z,y,x):
-    '''
+    """
     This is designed to be imported from another module and decorated for
     diskcache.  config.opendata must be in the global space
-    '''
+    """
     return config.opendata[dataset][res,t,c,z,y,x]
 
 def mountDataset(name,storeType):
@@ -528,9 +835,27 @@ def profile(func):
 
 
 def url_encode(url_string):
+    """
+    Encode a URL string for safe transmission.
+
+    Args:
+        url_string (str): The URL string.
+
+    Returns:
+        str: The encoded URL string.
+    """
     return requests.utils.quote(url_string)
 
 def url_decode(url_string):
+    """
+    Decode an encoded URL string.
+
+    Args:
+        url_string (str): The encoded URL string.
+
+    Returns:
+        str: The decoded URL string.
+    """
     return requests.utils.unquote(url_string)
 
 

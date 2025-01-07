@@ -114,6 +114,9 @@ app = setup_tokenized_endpoint(app, config)
 print('Initiating Landing Zone')
 @app.route('/', methods=['GET'])
 def home():
+    """
+    Landing zone for BrainPi
+    """
     return render_template('home.html',
                            browser_active=browser_active,
                            user=auth.user_info(),

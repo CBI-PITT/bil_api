@@ -51,13 +51,12 @@ def get_pyramid_images_connection(settings):
     mapping of unique hash values (derived from files) to their corresponding paths.
 
     Args:
-        settings (configparser.ConfigParser): A configuration object containing 
-        location of generated pyramid files.
+        settings (configparser.ConfigParser): A configuration object containing
+                                              location of generated pyramid files.
 
     Returns:
-        dict: A dictionary where keys are hash values (file or directory names
+        dict: A dictionary where keys are hash values (derived from file or directory names
               without extensions) and values are their full paths.
-
     """
     connection = {}
     dict_extension = set()
@@ -109,11 +108,18 @@ class config:
     def loadDataset(self, key: str, dataPath: str ):
         """
         Given the filesystem path to a file, open that file with the appropriate
-        reader and store it in the opendata attribute with the dataPath as
-        the key
+        reader and store it in the opendata attribute with the self/hash of dataPath
+        as the key
 
         If the key exists return
-        Always return the name of the dataPath
+        Always return the self/hash of the dataPath
+
+        Args:
+            key (str): self/hash of dataPath
+            dataPath (str): dataPath
+
+        Returns:
+            key (str): self/hash of dataPath
         """
         # print(dataPath , file_ino , modification_time)
         from logger_tools import logger
@@ -151,7 +157,6 @@ class config:
                                                     cache=self.cache)
         elif dataPath.lower().endswith('tif') or dataPath.lower().endswith('tiff'):
             import tiff_loader
-            # To do for metadata attribute rebuild, currently not compatible
             self.opendata[key] = tiff_loader.tiff_loader(dataPath, self.pyramid_images_connection, self.cache,self.settings)
         elif dataPath.lower().endswith('.terafly'):
             import terafly_loader

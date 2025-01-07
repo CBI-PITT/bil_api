@@ -7,9 +7,22 @@ from logger_tools import logger
 
 
 class terafly_loader:
+    """
+    A loader class for Terafly datasets that supports multi-resolution access, metadata extraction,
+    and efficient slicing of 3D image data.
+    """
     def __init__(
         self, location, ResolutionLevelLock=None, squeeze=True, cache=None
     ) -> None:
+        """
+        Initialize the terafly_loader object.
+
+        Args:
+            location (str): Path to the root directory of the Terafly dataset.
+            ResolutionLevelLock (int, optional): Initial resolution level lock. Defaults to None.
+            squeeze (bool, optional): Whether to remove singleton dimensions from arrays. Defaults to True.
+            cache (object, optional): Cache object for storing slices. Defaults to None.
+        """
         file_list = self.extract_and_sort_by_multiplication(location)
         # print(file_list)
         self.location = location
@@ -53,6 +66,16 @@ class terafly_loader:
         logger.info(self.metaData)
 
     def extract_and_sort_by_multiplication(self, directory):
+        """
+        Sort directories within the Terafly dataset based on their name length
+        and alphabetical order (descending).
+
+        Args:
+            directory (str): Path to the root directory of the dataset.
+
+        Returns:
+            list: Sorted list of directory paths.
+        """
         # entries = [
         #     os.path.join(directory, entry)
         #     for entry in os.listdir(directory)
@@ -90,6 +113,12 @@ class terafly_loader:
         return entries
 
     def change_resolution_lock(self, ResolutionLevelLock):
+        """
+        Update the resolution lock and associated metadata for the specified level.
+
+        Args:
+            ResolutionLevelLock (int): The resolution level to lock.
+        """
         self.ResolutionLevelLock = ResolutionLevelLock
         self.shape = self.metaData[self.ResolutionLevelLock, 0, 0, "shape"]
         self.ndim = len(self.shape)
@@ -98,7 +127,15 @@ class terafly_loader:
         self.dtype = self.metaData[self.ResolutionLevelLock, 0, 0, "dtype"]
 
     def __getitem__(self, key):
+        """
+        Access a specific slice of the Terafly dataset.
 
+        Args:
+            key (tuple): slice specifying the data to access.
+
+        Returns:
+            np.ndarray: The requested data slice, optionally squeezed.
+        """
         res = 0 if self.ResolutionLevelLock is None else self.ResolutionLevelLock
         # print(key)
         if (
@@ -145,8 +182,18 @@ class terafly_loader:
 
     def getSlice(self, r, t, c, z, y, x):
         """
-        Access the requested 3D chunck with all channels available based on resolution level and
-        (z,y,x). t is always 0.
+        Retrieve a 3D chunk of data for the specified coordinates.
+
+        Args:
+            r (int): Resolution level.
+            t (slice): Time dimension slice (always 0 in this implementation).
+            c (slice): Channel dimension slice.
+            z (slice): Z-axis slice.
+            y (slice): Y-axis slice.
+            x (slice): X-axis slice.
+
+        Returns:
+            np.ndarray: The requested 3D chunk of data.
         """
 
         incomingSlices = (r, t, c, z, y, x)
@@ -188,6 +235,18 @@ class terafly_loader:
         return result
     
     def validate_terafly_file(self, file_path):
+        """
+        Validate and load a Terafly dataset file using the TeraflyInterface.
+
+        Args:
+            file_path (str): Path to the Terafly file.
+
+        Returns:
+            TeraflyInterface: Loaded Terafly dataset object.
+
+        Raises:
+            Exception: If the file is not valid or cannot be loaded.
+        """
         img = TeraflyInterface(file_path)
         return img
         # try:

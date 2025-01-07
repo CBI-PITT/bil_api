@@ -39,6 +39,15 @@ dl_size_GB = 8
 
 
 def time_format(time_from_os_stat):
+    """
+    Format a timestamp into a human-readable string.
+
+    Args:
+        time_from_os_stat (int, float, or datetime.datetime): The timestamp to format.
+
+    Returns:
+        str: A string in the format "YYYY-MM-DD HH:mm".
+    """
     if isinstance(time_from_os_stat, (int,float)):
         return datetime.datetime.fromtimestamp(time_from_os_stat).strftime("%Y-%m-%d %H:%I")
     elif isinstance(time_from_os_stat, datetime.datetime):
@@ -618,6 +627,20 @@ path_info = { # Name of object that tracks path information for browser endpoint
 ##  END TESTING
 ##########################################################################################################
 def get_path_data(base, request):
+    """
+    Retrieve metadata and structure for the requested path in the filesystem.
+
+    This function builds information about the current path, directories, and files. It applies
+    user permissions and group-based restrictions to determine accessible paths.
+
+    Args:
+        base (str): The base entry point for the browsing interface.
+        request (Flask.Request): The Flask request object containing the current path.
+
+    Returns:
+        tuple or str: If successful, returns a tuple of `('render_template', page_description, current_path)`.
+                      If unauthorized, redirects to the login page or sends a file response.
+    """
     # Split the requested path to a tuple that can be reused below
     html_path_split = utils.split_html(request.path)
     logger.info(html_path_split)
@@ -918,6 +941,20 @@ def get_path_data(base, request):
 
 
 def initiate_browseable(app,config):
+    """
+    Initialize the browseable filesystem interface with Flask.
+
+    This function sets up two routes:
+    - `/browser/`: Serves a web interface for browsing directories and files.
+    - `/browser_json/`: Serves the directory structure as JSON.
+
+    Args:
+        app (Flask): The Flask application instance.
+        config (object): The configuration object containing application settings.
+
+    Returns:
+        Flask: The modified Flask application with the added routes.
+    """
     from brain_api_main import login_manager
     
     # base entrypoint must always begin and end with '/' --> /my_entry/
@@ -970,6 +1007,19 @@ def initiate_browseable(app,config):
 
 
 def initiate_NOT_browseable(app, config):
+    """
+    Initialize a disabled browseable filesystem interface with Flask.
+
+    This function sets up the `/browser/` route but always returns a 404 error, effectively
+    disabling the browsing functionality.
+
+    Args:
+        app (Flask): The Flask application instance.
+        config (object): The configuration object containing application settings.
+
+    Returns:
+        Flask: The modified Flask application with the disabled route.
+    """
     from flask import abort
 
     # base entrypoint must always begin and end with '/' --> /my_entry/

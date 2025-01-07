@@ -9,6 +9,28 @@ GA_TRACKING_ID = 'G-ZX9TCXH925'
 
 
 def track_event(category, action, label=None, value=0):
+    """
+    Send an event to Google Analytics using the Measurement Protocol.
+
+    Args:
+        category (str): Event category (e.g., "UX", "Button").
+        action (str): Event action (e.g., "click", "submit").
+        label (str, optional): Event label (e.g., "Submit Button"). Defaults to None.
+        value (int, optional): Event value (must be an integer). Defaults to 0.
+
+    Additional Parameters Sent:
+        - 'ds': Data source, set to "brainpi".
+        - 'uid': User ID (if available).
+        - 'sr': Screen resolution.
+        - 'vp': Viewer port size.
+        - 'uip': IP override.
+        - 'dl': Document location (URL).
+        - 'cid': Anonymous Client ID (set to "555" for simplicity).
+        - 'ua': User agent string.
+
+    Raises:
+        requests.exceptions.RequestException: If the HTTP request to Google Analytics fails.
+    """
     data = {
         'v': '1',  # API Version.
         'tid': GA_TRACKING_ID,  # Tracking ID / Property ID.

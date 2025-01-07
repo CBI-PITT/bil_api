@@ -57,6 +57,9 @@ def separate_process_generation(inp, out, time_axe):
 
 
 class nifti_zarr_loader:
+    """
+    A loader class for handling NIfTI files with pyramid generation using Zarr format.
+    """
     def __init__(
         self,
         location,
@@ -68,6 +71,19 @@ class nifti_zarr_loader:
         squeeze=True,
         cache=None,
     ):
+        """
+        Initialize the nifti_zarr_loader object.
+
+        Args:
+            location (str): Path to the NIfTI file.
+            pyramid_images_connection (dict): Mapping of hash values to pyramid images.
+            settings (configparser.ConfigParser): Configuration settings.
+            ResolutionLevelLock (int, optional): Lock for accessing a specific resolution level. Defaults to None.
+            zarr_store_type (zarr.storage, optional): Zarr store type. Defaults to NestedDirectoryStore.
+            verbose (bool, optional): Verbose logging. Defaults to None.
+            squeeze (bool, optional): Whether to remove singleton dimensions from arrays. Defaults to True.
+            cache (object, optional): Cache object for storing slices. Defaults to None.
+        """
         self.location = location
         self.datapath = location
         self.ResolutionLevelLock = (
@@ -207,6 +223,15 @@ class nifti_zarr_loader:
         logger.info(self.metaData)
 
     def validate_nifti_file(self, file_path):
+        """
+        Validate the provided NIfTI file.
+
+        Args:
+            file_path (str): Path to the NIfTI file.
+
+        Raises:
+            Exception: If the file size exceeds the allowed limit.
+        """
         if self.file_size > self.allowed_file_size_byte:
                 logger.info(f"File '{self.filename}' can not generate pyramid structure. Due to resource constrait, {self.allowed_file_size_gb}GB and below are acceptable for generation process.")
                 raise Exception(f"File '{self.filename}' can not generate pyramid structure. Due to resource constrait, {self.allowed_file_size_gb}GB and below are acceptable for generation process.")
@@ -220,6 +245,12 @@ class nifti_zarr_loader:
             # raise Exception(f"File '{file_path}' is not a valid nifti file. Error: {e}")
 
     def pyramid_builders(self, nifti_file_location):
+        """
+        Build a pyramid structure for the NIfTI file.
+
+        Args:
+            nifti_file_location (str): Path to the NIfTI file.
+        """
         hash_value = calculate_hash(self.file_ino + self.modification_time)
         pyramids_images_store = self.settings.get(
             "nifti_loader", "pyramids_images_store"
@@ -262,6 +293,17 @@ class nifti_zarr_loader:
         pyramids_images_store_dir,
         pyramid_image_location,
     ):
+        """
+        Generate pyramid representations for the NIfTI file.
+
+        Args:
+            nifti_file_location (str): Path to the NIfTI file.
+            time_axe (bool): Whether to include a time axis.
+            hash_value (str): Unique hash for the file.
+            pyramids_images_store (str): Path to the pyramid images store.
+            pyramids_images_store_dir (str): Directory for storing pyramid images.
+            pyramid_image_location (str): Final location of the pyramid image.
+        """
         os.makedirs(pyramids_images_store_dir, exist_ok=True)
         file_temp = pyramid_image_location.replace(hash_value, "temp_" + hash_value)
         file_temp_lock = file_temp + ".lock"
@@ -317,9 +359,24 @@ class nifti_zarr_loader:
             
 
     def zarr_store_type(self, path):
+        """
+        Return the appropriate Zarr store for the dataset.
+
+        Args:
+            path (str): Path to the dataset.
+
+        Returns:
+            zarr.storage: The Zarr store object.
+        """
         return self.zarr_store(path)
 
     def change_resolution_lock(self, ResolutionLevelLock):
+        """
+        Update the resolution lock and associated metadata.
+
+        Args:
+            ResolutionLevelLock (int): The resolution level to lock.
+        """
         self.ResolutionLevelLock = ResolutionLevelLock
         self.shape = self.metaData[self.ResolutionLevelLock, 0, 0, "shape"]
         self.ndim = len(self.shape)
@@ -328,7 +385,15 @@ class nifti_zarr_loader:
         self.dtype = self.metaData[self.ResolutionLevelLock, 0, 0, "dtype"]
 
     def __getitem__(self, key):
+        """
+        Access a specific slice of the NIfTI dataset.
 
+        Args:
+            key (int, slice, or tuple): Slice specifying the data to access.
+
+        Returns:
+            np.ndarray: The requested data slice, optionally squeezed.
+        """
         res = 0 if self.ResolutionLevelLock is None else self.ResolutionLevelLock
         logger.info(key)
         if (
@@ -388,8 +453,18 @@ class nifti_zarr_loader:
 
     def getSlice(self, r, t, c, z, y, x):
         """
-        Access the requested slice based on resolution level and
-        5-dimentional (t,c,z,y,x) access to zarr array.
+        Retrieve a 3D chunk of data for the specified coordinates.
+
+        Args:
+            r (int): Resolution level.
+            t (slice): Time dimension slice.
+            c (slice): Channel dimension slice.
+            z (slice): Z-axis slice.
+            y (slice): Y-axis slice.
+            x (slice): X-axis slice.
+
+        Returns:
+            np.ndarray: The requested 3D chunk of data.
         """
 
         incomingSlices = (r, t, c, z, y, x)
@@ -432,9 +507,27 @@ class nifti_zarr_loader:
 
 
     def locationGenerator(self, res):
+        """
+        Generate the file path for a specific resolution level.
+
+        Args:
+            res (int): The resolution level.
+
+        Returns:
+            str: The file path corresponding to the resolution level.
+        """
         return os.path.join(self.datapath, self.dataset_paths[res])
 
     def open_array(self, res):
+        """
+        Open the Zarr array for the specified resolution level.
+
+        Args:
+            res (int): The resolution level.
+
+        Returns:
+            zarr.core.Array: The Zarr array for the resolution level.
+        """
         store = self.zarr_store_type(self.locationGenerator(res))
         logger.info("OPENING ARRAYS")
         store = self.wrap_store_in_chunk_cache(store)
@@ -452,6 +545,15 @@ class nifti_zarr_loader:
         return zarr.open(store)
 
     def wrap_store_in_chunk_cache(self, store):
+        """
+        Wrap the Zarr store with a chunk cache for efficient access.
+
+        Args:
+            store (zarr.storage): The Zarr store to wrap.
+
+        Returns:
+            zarr.storage: The wrapped Zarr store with chunk caching.
+        """
         if self.cache is not None:
             logger.info("OPENING CHUNK CACHE ARRAYS")
             logger.info(store.path)

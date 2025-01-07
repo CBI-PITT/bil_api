@@ -23,8 +23,21 @@ from logger_tools import logger
 # import s3fs
 
 class ome_zarr_loader:
+    """
+    A loader class for handling OME-Zarr datasets with multi-resolution access and metadata extraction.
+    """
     def __init__(self, location, ResolutionLevelLock=None, zarr_store_type: StoreLike=NestedDirectoryStore, verbose=None, squeeze=True, cache=None):
+        """
+        Initialize the ome_zarr_loader object.
 
+        Args:
+            location (str): Path to the OME-Zarr dataset.
+            ResolutionLevelLock (int, optional): Lock for accessing a specific resolution level. Defaults to None.
+            zarr_store_type (zarr.storage, optional): Zarr store type. Defaults to NestedDirectoryStore.
+            verbose (bool, optional): Whether to enable verbose logging. Defaults to None.
+            squeeze (bool, optional): Whether to remove singleton dimensions from arrays. Defaults to True.
+            cache (object, optional): Cache object for storing slices. Defaults to None.
+        """
         # assert StoreLike is s3fs.S3Map or any([issubclass(zarr_store_type,x) for x in StoreLike.__args__]), 'zarr_store_type is not a zarr storage class'
 
         self.location = location
@@ -98,6 +111,15 @@ class ome_zarr_loader:
             self.arrays[res] = self.open_array(res)
 
     def zarr_store_type(self, path):
+        """
+        Return the appropriate Zarr store for the dataset.
+
+        Args:
+            path (str): Path to the dataset.
+
+        Returns:
+            zarr.storage: The Zarr store object.
+        """
         if self.s3:
             pass
             # return s3fs.S3Map(path, s3=self.s3)
@@ -106,6 +128,12 @@ class ome_zarr_loader:
 
 
     def change_resolution_lock(self,ResolutionLevelLock):
+        """
+        Update the resolution lock and associated metadata.
+
+        Args:
+            ResolutionLevelLock (int): The resolution level to lock.
+        """
         self.ResolutionLevelLock = ResolutionLevelLock
         self.shape = self.metaData[self.ResolutionLevelLock,0,0,'shape']
         self.ndim = len(self.shape)
@@ -116,7 +144,15 @@ class ome_zarr_loader:
 
 
     def __getitem__(self,key):
-        
+        """
+        Access a specific slice of the OME-Zarr dataset.
+
+        Args:
+            key (int, slice, or tuple): Index or slice specifying the data to access.
+
+        Returns:
+            np.ndarray: The requested data slice, optionally squeezed.
+        """
         res = 0 if self.ResolutionLevelLock is None else self.ResolutionLevelLock
         logger.info(key)
         if isinstance(key,slice) == False and isinstance(key,int) == False and len(key) == 6:
@@ -177,12 +213,20 @@ class ome_zarr_loader:
             ) if self.cache is not None else lambda x: x
     
     def getSlice(self,r,t,c,z,y,x):
-        
-        '''
-        Access the requested slice based on resolution level and 
-        5-dimentional (t,c,z,y,x) access to zarr array.
-        '''
-        
+        """
+        Retrieve a 3D chunk of data for the specified coordinates.
+
+        Args:
+            r (int): Resolution level.
+            t (slice): Time dimension slice.
+            c (slice): Channel dimension slice.
+            z (slice): Z-axis slice.
+            y (slice): Y-axis slice.
+            x (slice): X-axis slice.
+
+        Returns:
+            np.ndarray: The requested 3D chunk of data.
+        """
         incomingSlices = (r,t,c,z,y,x)
         logger.info(incomingSlices)
         if self.cache is not None:
@@ -210,9 +254,27 @@ class ome_zarr_loader:
     
     
     def locationGenerator(self,res):
+        """
+        Generate the file path for a specific resolution level.
+
+        Args:
+            res (int): The resolution level.
+
+        Returns:
+            str: The file path corresponding to the resolution level.
+        """
         return os.path.join(self.location,self.dataset_paths[res])
     
     def open_array(self,res):
+        """
+        Open the Zarr array for the specified resolution level.
+
+        Args:
+            res (int): The resolution level.
+
+        Returns:
+            zarr.core.Array: The Zarr array for the resolution level.
+        """
         store = self.zarr_store_type(self.locationGenerator(res))
         logger.info('OPENING ARRAYS')
         store = self.wrap_store_in_chunk_cache(store)
@@ -231,6 +293,15 @@ class ome_zarr_loader:
 
 
     def wrap_store_in_chunk_cache(self, store):
+        """
+        Wrap the Zarr store with a chunk cache for efficient access.
+
+        Args:
+            store (zarr.storage): The Zarr store to wrap.
+
+        Returns:
+            zarr.storage: The wrapped Zarr store with chunk caching.
+        """
         if self.cache is not None:
             logger.info('OPENING CHUNK CACHE ARRAYS')
             logger.info(store.path)

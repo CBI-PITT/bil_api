@@ -18,11 +18,25 @@ import re
 import json
 
 def openseadragon_dtypes():
+    """
+    Returns a list of supported file extensions for OpenSeadragon.
+
+    Returns:
+        list: A list of supported file extensions.
+    """
     return [".tif", ".tiff", ".ome.tif", ".ome.tiff", ".ome-tif", ".ome-tiff", ".jp2"]
 
 
 def calculate_hash(input_string):
-    # Calculate the SHA-256 hash of the input string
+    """
+    Calculates the SHA-256 hash of the input string.
+
+    Args:
+        input_string (str): The input string to hash.
+
+    Returns:
+        str: The SHA-256 hash of the input string.
+    """
     hash_result = hashlib.sha256(input_string.encode()).hexdigest()
     return hash_result
 
@@ -31,6 +45,13 @@ openSeadragonPath = "/osd/"
 
 
 def setup_openseadragon(app, config):
+    """
+    Sets up the OpenSeadragon configuration for the Flask application.
+
+    Args:
+        app: The Flask application instance.
+        config: The configuration object containing settings.
+    """
     allowed_file_size_gb = int(
         config.settings.get("tif_loader", "pyramids_images_allowed_generation_size_gb")
     )

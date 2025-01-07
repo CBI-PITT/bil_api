@@ -14,11 +14,12 @@ conda activate brainpi
 
 git clone https://github.com/CBI-PITT/BrAinPI.git
 pip install -e /path/to/cloned/repo/
-conda install -c conda-forge glymur
 ## Before running BrAinPI
 
 '''
 Edit the settings_TEMPLATE.ini and groups_TEMPLATE.ini files and rename them to settings.ini and groups.ini.
+On limux machine, test the files allowed to be opened by ulimit -n. Increase it using ulimit -n 500000 if it's 
+default 1024.
 '''
 
 ```

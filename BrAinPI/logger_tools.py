@@ -9,6 +9,9 @@ ENVIRONMENT = settings.get("app", "environment")
 # Logging setting
 # Remove the default logger to avoid duplicate logs
 def setup_logger():
+    """
+    Set up the logger for the application, based on different environment.
+    """
     logger.remove()
     # if not logger._core.handlers:  # Check if any handlers are already configured
     if ENVIRONMENT == "development":

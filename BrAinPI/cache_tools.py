@@ -6,10 +6,18 @@ import config_tools
 
 settings = config_tools.get_config()
 def get_cache():
-    '''
-    Setup cache location based on OS type
-    Optional situations like machine name can be used to customize
-    '''
+    """
+    Setup cache location based on OS type. Optional situations like machine name can be used to customize.
+    Initialize and configure a disk-based cache using `FanoutCache`.The cache settings, such as location, 
+    size, eviction policy, and shards, are loaded from the application's configuration file.
+
+    Returns:
+        FanoutCache: A configured disk-based cache object, or None if no cache location is specified.
+
+    Example:
+        >>> cache = get_cache()
+        >>> print(cache)
+    """
     if os.name == 'nt':
         cacheLocation = settings.get('disk_cache', 'location_win')
     else:
@@ -48,12 +56,27 @@ class cache_head_space:
     '''
 
     def __init__(self, free_ram_gb=20):
+        """
+        Initialize the cache with a specified amount of free memory to maintain.
+
+        Args:
+            free_ram_gb (int): The amount of memory (in GB) to keep free. Defaults to 20.
+        """
         self.head_space = free_ram_gb * (1024**3)
         self.cache = OrderedDict()
         self.update_available_space()
         self.uuid = str(uuid)
 
     def memoize(self, func):
+        """
+        Decorate a function to cache its output based on its arguments.
+
+        Args:
+            func (callable): The function to memoize.
+
+        Returns:
+            callable: A wrapped function with caching enabled.
+        """
         kwd_mark = object()
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
@@ -73,14 +96,35 @@ class cache_head_space:
 
 
     def update_available_space(self):
+        """
+        Update the available system memory in bytes.
+        """
         self.available_space = virtual_memory().available
         # print(f'Available GB: {self.available_space / 1024**3}')
 
     @staticmethod
     def get_size_object(object):
+        """
+        Calculate the memory size of an object.
+
+        Args:
+            object: The object to measure.
+
+        Returns:
+            int: The size of the object in bytes.
+        """
         return sys.getsizeof(object)
 
     def __getitem__(self, key):
+        """
+        Retrieve an item from the cache.
+
+        Args:
+            key: The key of the item to retrieve.
+
+        Returns:
+            object: The cached item, or None if the key is not found.
+        """
         print('GETITEM 80')
         result = self.cache.get(key)
         if result is not None:
@@ -91,6 +135,13 @@ class cache_head_space:
         return result
 
     def __setitem__(self, key, value):
+        """
+        Add an item to the cache, ensuring enough memory is available.
+
+        Args:
+            key: The key of the item.
+            value: The item to cache.
+        """
         while True:
             lock_value = self.cache.get('lock')
             if lock_value is None:
@@ -113,12 +164,17 @@ class cache_head_space:
                 self.cache.pop('lock')
 
     def trim_cache(self, extra_space=0):
-        '''
+        """
         Trim cache to fit head_space
         extra_space will trim further to allow for object insertion
-
         Return True if trim was successful, False if cache is empty and space is not available
-        '''
+
+        Args:
+            extra_space (int, optional): Additional memory required for new items. Defaults to 0.
+
+        Returns:
+            bool: True if the trim was successful, False if the cache is empty and space is unavailable.
+        """
         self.update_available_space()
         while self.available_space < self.head_space + extra_space:
             try:
@@ -129,10 +185,19 @@ class cache_head_space:
         return True
 
     def __del__(self):
+        """
+        Clear all items from the cache when the instance is deleted.
+        """
         for key in self.cache.keys():
             self.cache[key] = None
 
 def test(head_space=20):
+    """
+    Test the `cache_head_space` class by populating it with large numpy arrays.
+
+    Args:
+        head_space (int, optional): The amount of memory (in GB) to keep free. Defaults to 20.
+    """
     import numpy as np
     a = cache_head_space(head_space)
     for ii in range(100000):

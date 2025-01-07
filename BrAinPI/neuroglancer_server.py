@@ -5,6 +5,9 @@ from logger_tools import logger
 # Project specific imports
 import config_tools
 def get_server():
+    """
+    Lauch the neuroglancer server
+    """
     settings = config_tools.get_config('settings.ini')
     ip = settings.get('neuroglancer','local_ip')
     port = settings.getint('neuroglancer','local_port')
@@ -39,7 +42,10 @@ def get_server():
             return
 
 def keep_alive():
-    signal.pause()  # Wait for signals (Ctrl+C will exit)
+    """
+    Wait for signals (Ctrl+C will exit)
+    """
+    signal.pause() 
 
 if __name__ == '__main__':
         viewer = get_server()

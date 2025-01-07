@@ -38,6 +38,22 @@ from utils import (from_path_to_html,
                    )
 
 def inititate(app,config):
+    """
+    Initialize Flask endpoints for Neuroglancer and OpenSeadragon integration.
+
+    Args:
+        app (Flask): The Flask application instance.
+        config (object): The configuration object containing application settings.
+
+    Endpoints:
+        - `/ng_supported_filetypes/`: Returns a list of supported file types for Neuroglancer.
+        - `/opsd_supported_filetypes/`: Returns a list of supported file types for OpenSeadragon.
+        - `/path_to_html_options/`: Converts a file system path to a set of HTML links.
+        - `/curated_datasets/`: Retrieves curated dataset collections and their corresponding links.
+
+    Returns:
+        Flask: The Flask application with the added endpoints.
+    """
     settings = config.settings
     @app.route('/ng_supported_filetypes/', methods=['GET'])
     @cross_origin(allow_headers=['Content-Type'])
@@ -80,9 +96,17 @@ def inititate(app,config):
     # paths['omezarr_8bit_neuroglancer_optimized_validator'] = None
 
     def path_to_html_options(path, verify_file_exists=True):
-        '''
-        Takes the path (on disk) to a potential BrAinPI compatible dataset and return all possible links in a dictionary
-        '''
+        """
+        Takes the path (on disk) to a potential BrAinPI compatible dataset and return all possible links in a dictionary.
+        Convert a file system path into a dictionary of possible HTML links.
+
+        Args:
+            path (str): The file system path to a BrAinPI-compatible dataset.
+            verify_file_exists (bool, optional): Whether to check if the file exists. Defaults to True.
+
+        Returns:
+            dict: A dictionary containing HTML links for various visualization services and metadata.
+        """
         path_map = get_path_map(settings,
                                 user_authenticated=True)  # <-- Force user_auth=True to get all possible paths, in this way all ng links will be shareable to anyone
         key = path
@@ -209,6 +233,15 @@ def inititate(app,config):
     @app.route('/curated_datasets/', methods=['GET'])
     @cross_origin(allow_headers=['Content-Type'])
     def curated_datasets_4():
+        """
+        Retrieve a collection of curated datasets and their links.
+
+        The datasets are grouped by type and include links to their respective 
+        HTML representations or metadata.
+
+        Returns:
+            Flask.Response: A JSON object containing the curated datasets.
+        """
 
         html_base = settings.get('app', 'url')
         html_base = strip_leading_trailing_slash(html_base)

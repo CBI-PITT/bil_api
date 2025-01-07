@@ -52,7 +52,20 @@ from utils import calculate_hash, get_directory_size, delete_oldest_files
 def separate_process_generation(
     jp2_img, factor, file_temp, subresolutions, datapath, tile_size
 ):
+    """
+    Generate a pyramid image structure in a separate process.
 
+    Args:
+        jp2_img (numpy.ndarray): The input JP2 image.
+        factor (int): The downsampling factor for sub-resolutions.
+        file_temp (str): Temporary file path for the output.
+        subresolutions (int): Number of sub-resolutions to generate.
+        datapath (str): The original data path.
+        tile_size (tuple): The size of the tiles.
+
+    Returns:
+        None
+    """
     start_load = time.time()
     # data = jp2_img[:]
     height, width = jp2_img.shape[:2]
@@ -129,6 +142,9 @@ def separate_process_generation(
 
 
 class jp2_loader:
+    """
+    A loader class for handling JP2 images and generating pyramid structures.
+    """
     def __init__(
         self,
         location,
@@ -139,7 +155,19 @@ class jp2_loader:
         squeeze=True,
         cache=None,
     ):
+        """
+        Args:
+            location (str): Path to the JP2 file.
+            pyramid_images_connection (dict): A dictionary for mapping hash values to pyramid images.
+            settings (configparser.ConfigParser): Settings for pyramid generation.
+            ResolutionLevelLock (int, optional): Initial resolution lock level. Defaults to 0.
+            verbose (bool, optional): Verbose output flag. Defaults to None.
+            squeeze (bool, optional): If True, squeeze output arrays. Defaults to True.
+            cache (object, optional): Cache object for storing slices. Defaults to None.
 
+        Raises:
+            Exception: If the JP2 file exceeds the allowed file size.
+        """
         # assert StoreLike is s3fs.S3Map or any([issubclass(zarr_store_type,x) for x in StoreLike.__args__]), 'zarr_store_type is not a zarr storage class'
 
         self.location = location
@@ -196,6 +224,19 @@ class jp2_loader:
         # self.change_resolution_lock(self.ResolutionLevelLock)
 
     def validate_jp2_file(self, file_path):
+        """
+        Validate the JP2 file for compatibility and size.
+
+        Args:
+            file_path (str): Path to the JP2 file.
+
+        Returns:
+            glymur.Jp2k: Validated JP2 object.
+
+        Raises:
+            Exception: If the file exceeds the allowed size.
+            TypeError: If the JP2 file's shape is not supported.
+        """
         if self.file_size > self.allowed_file_size_byte:
             logger.info(
                 f"File '{self.filename}' can not generate pyramid structure. Due to resource constrait, {self.allowed_file_size_gb}GB and below are acceptable for generation process."
@@ -210,6 +251,15 @@ class jp2_loader:
         return self.jp2_img
 
     def pyramid_builders(self, jp2_img):
+        """
+        Build or retrieve pyramid images for a JP2 file.
+
+        Args:
+            jp2_img (glymur.Jp2k): JP2 image object.
+
+        Returns:
+            None
+        """
         hash_value = calculate_hash(self.file_ino + self.modification_time)
         pyramids_images_store = self.settings.get("jp2_loader", "pyramids_images_store")
         pyramids_images_store_dir = (
@@ -309,6 +359,15 @@ class jp2_loader:
             logger.success("Resources cleaned up.")
 
     def change_resolution_lock(self, ResolutionLevelLock):
+        """
+        Change the resolution lock level and update metadata.
+
+        Args:
+            ResolutionLevelLock (int): The new resolution lock level.
+
+        Returns:
+            None
+        """
         self.ResolutionLevelLock = ResolutionLevelLock
         self.shape = self.metaData[self.ResolutionLevelLock, 0, 0, "shape"]
         self.ndim = len(self.shape)
@@ -317,6 +376,9 @@ class jp2_loader:
         self.dtype = self.metaData[self.ResolutionLevelLock, 0, 0, "dtype"]
 
     def __getitem__(self, key):
+        """
+        Overwrite the getitem method by reusing the geitem function of tif_loader
+        """
         return self.tif_obj[key]
 
         res = 0 if self.ResolutionLevelLock is None else self.ResolutionLevelLock
@@ -363,40 +425,80 @@ class jp2_loader:
         else:
             return array
 
-    def getSlice(self, r, t, c, z, y, x):
-        """
-        Access the requested slice based on resolution level and
-        5-dimentional (t,c,z,y,x) access to zarr array.
-        """
+    # def getSlice(self, r, t, c, z, y, x):
+    #     """
+    #     Access the requested slice based on resolution level and
+    #     5-dimentional (t,c,z,y,x) access to zarr array. Retrieve a 
+    #     slice of the image at a specific resolution.
 
-        incomingSlices = (r, t, c, z, y, x)
-        logger.info(incomingSlices)
-        if self.cache is not None:
-            key = f"{self.datapath}_getSlice_{str(incomingSlices)}"
-            # key = self.datapath + '_getSlice_' + str(incomingSlices)
-            result = self.cache.get(key, default=None, retry=True)
-            if result is not None:
-                logger.info(f"Returned from cache: {incomingSlices}")
-                return result
-        result = self.jp2_img[y.start*2**r:y.stop*2**r:2**r,x.start*2**r:x.stop*2**r:2**r]
-        # result = self.arrays[r][t, c, z, y, x]
+    #     Args:
+    #         r (int): Resolution level.
+    #         t (slice): Time dimension slice.
+    #         c (slice): Channel dimension slice.
+    #         z (slice): Z-axis slice.
+    #         y (slice): Y-axis slice.
+    #         x (slice): X-axis slice.
 
-        if self.cache is not None:
-            self.cache.set(key, result, expire=None, tag=self.datapath, retry=True)
-            # test = True
-            # while test:
-            #     # logger.info('Caching slice')
-            #     self.cache.set(key, result, expire=None, tag=self.datapath, retry=True)
-            #     if result == self.getSlice(*incomingSlices):
-            #         test = False
+    #     Returns:
+    #         np.ndarray: The requested slice.
+    #     """
 
-        return result
-        # return self.open_array(r)[t,c,z,y,x]
+    #     incomingSlices = (r, t, c, z, y, x)
+    #     logger.info(incomingSlices)
+    #     if self.cache is not None:
+    #         key = f"{self.datapath}_getSlice_{str(incomingSlices)}"
+    #         # key = self.datapath + '_getSlice_' + str(incomingSlices)
+    #         result = self.cache.get(key, default=None, retry=True)
+    #         if result is not None:
+    #             logger.info(f"Returned from cache: {incomingSlices}")
+    #             return result
+    #     result = self.jp2_img[y.start*2**r:y.stop*2**r:2**r,x.start*2**r:x.stop*2**r:2**r]
+    #     # result = self.arrays[r][t, c, z, y, x]
+
+    #     if self.cache is not None:
+    #         self.cache.set(key, result, expire=None, tag=self.datapath, retry=True)
+    #         # test = True
+    #         # while test:
+    #         #     # logger.info('Caching slice')
+    #         #     self.cache.set(key, result, expire=None, tag=self.datapath, retry=True)
+    #         #     if result == self.getSlice(*incomingSlices):
+    #         #         test = False
+
+    #     return result
+    #     return self.open_array(r)[t,c,z,y,x]
 
     def locationGenerator(self, res):
+        """
+        Generate the file path for a specific resolution level.
+
+        This method combines the base data path (`datapath`) with the dataset paths
+        for a specific resolution level to produce the full file path.
+
+        Args:
+            res (int): The resolution level index.
+
+        Returns:
+            str: The file path corresponding to the specified resolution level.
+        """
         return os.path.join(self.datapath, self.dataset_paths[res])
 
     def divide_time(self, shape, factor, tile_size):
+        """
+        Calculate the number of downsampling steps required to fit an image 
+        within a specified tile size.
+
+        This method iteratively divides the dimensions of an image by a given 
+        factor until both dimensions are smaller than the tile size. It is used 
+        to determine the number of pyramid levels for multi-resolution storage.
+
+        Args:
+            shape (tuple): The shape of the image as (height, width).
+            factor (int): The downsampling factor for each step.
+            tile_size (tuple): The target tile size as (tile_height, tile_width).
+
+        Returns:
+            int: The number of downsampling steps (or pyramid levels).
+        """
         shape_y = shape[0]
         shape_x = shape[1]
         times = 0

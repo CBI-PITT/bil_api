@@ -36,6 +36,11 @@ def ng_links(req_path):
         return None
 
 def opsd_links(req_path):
+    '''
+    req_path is a string from the 'browse_fs' endpoint to a file.
+    If the file type is supported for Openseadragon
+    return the osd file entrypoint else return None
+    '''
     file_types = openSeadragon.openseadragon_dtypes()
     file_type_supported = utils.is_file_type(file_types, req_path)
     if file_type_supported:

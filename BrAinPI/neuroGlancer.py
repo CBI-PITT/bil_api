@@ -32,6 +32,16 @@ from flask_cors import cross_origin
 
 
 def encode_ng_file(numpy_array, channels):
+    """
+    Encode a numpy array into a Neuroglancer-compatible chunk format.
+
+    Args:
+        numpy_array (np.ndarray): The array to encode.
+        channels (int): Number of channels in the array.
+
+    Returns:
+        io.BytesIO: The encoded chunk as a memory buffer.
+    """
     encoder = RawChunkEncoder(numpy_array.dtype, channels)
     img_ram = io.BytesIO()
     img_ram.write(encoder.encode(numpy_array))
@@ -40,7 +50,15 @@ def encode_ng_file(numpy_array, channels):
 
 
 def ng_shader(numpy_like_object):
+    """
+    Generate a dynamic Neuroglancer shader string based on dataset metadata.
 
+    Args:
+        numpy_like_object: An object containing metadata and resolution levels.
+
+    Returns:
+        str: The Neuroglancer shader string.
+    """
     # metadata should have been appended to object during opening utils.config.loadDataset
     metadata = numpy_like_object.metadata
     try:
@@ -179,10 +197,16 @@ def ng_shader(numpy_like_object):
 ## Build neuroglancer json
 def ng_json(numpy_like_object, file=None, different_chunks=False):
     """
-    Save a json from a 5d numpy like volume
-    file = None saves to a BytesIO buffer
-    file == str saves to that file name
-    file == 'dict' outputs a dictionary
+    Generate Neuroglancer JSON metadata for a 5D numpy-like volume.
+
+    Args:
+        numpy_like_object: A numpy-like object representing the dataset.
+        file (str or None, optional): The output file name or "dict" for a dictionary output.
+                                       Defaults to None (returns a BytesIO buffer).
+        different_chunks (bool or int or tuple, optional): Custom chunking configuration. Defaults to False.
+
+    Returns:
+        io.BytesIO, str, or dict: The Neuroglancer JSON metadata as a memory buffer, string, or dictionary.
     """
 
     # Alternative chunking depth along axial plane
@@ -256,7 +280,13 @@ def ng_files(numpy_like_object):
     Takes numpy_like_object representing a supported filetype
     and produces a dict where keys are int == resolution level and objects are
     compreshensive lists of filenames representing each chunk of structure:
-    xstart-xstop_ystart-ystop_zstart-zstop
+    xstart-xstop_ystart-ystop_zstart-zstop. Not used?
+
+    Args:
+        numpy_like_object: A numpy-like object representing the dataset.
+
+    Returns:
+        dict: A dictionary where keys are resolution levels and values are lists of file names.
     """
 
     metadata = utils.metaDataExtraction(numpy_like_object, strKey=False)
@@ -290,7 +320,15 @@ def ng_files(numpy_like_object):
 
 def make_ng_link(open_dataset_with_ng_json, compatible_file_link, config=None):
     """
-    Attempts to build a fully working link to ng dataset
+    Build a fully functional Neuroglancer link for a dataset.
+
+    Args:
+        open_dataset_with_ng_json: A dataset object containing Neuroglancer JSON metadata.
+        compatible_file_link (str): Path to the Neuroglancer-compatible dataset.
+        config (object, optional): Configuration settings. Defaults to None.
+
+    Returns:
+        str: The Neuroglancer link.
     """
     import neuroglancer
 
@@ -400,6 +438,12 @@ def make_ng_link(open_dataset_with_ng_json, compatible_file_link, config=None):
 
 
 def neuroglancer_dtypes():
+    """
+    List supported file types for Neuroglancer.
+
+    Returns:
+        list: Supported file extensions.
+    """
     return [
         ".ims",  # imaris
         # '.omezarr', #ome.zarr
@@ -416,7 +460,16 @@ def neuroglancer_dtypes():
 
 
 def open_ng_dataset(config, datapath):
+    """
+    Open a Neuroglancer-compatible dataset and prepare its JSON metadata.
 
+    Args:
+        config (object): Configuration settings.
+        datapath (str): Path to the dataset.
+
+    Returns:
+        str: The dataset path.
+    """
     datapath = config.loadDataset(datapath, datapath)
 
     logger.info("IN OPEN NG DATASET 411")
@@ -463,7 +516,16 @@ def open_ng_dataset(config, datapath):
 
 
 def setup_neuroglancer(app, config):
+    """
+    Set up Flask routes and endpoints for Neuroglancer integration.
 
+    Args:
+        app (Flask): The Flask application instance.
+        config (object): Configuration settings.
+
+    Returns:
+        Flask: The modified Flask application with Neuroglancer endpoints.
+    """
     # get_server will only open 1 server if it does not already exist.
     if config.settings.getboolean("neuroglancer", "use_local_server"):
         from neuroglancer_server import get_server
