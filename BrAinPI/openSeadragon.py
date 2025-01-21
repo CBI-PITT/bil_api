@@ -168,7 +168,7 @@ def setup_openseadragon(app, config):
                 cache_key = f"osd_{file_ino + modification_time}-{r}-{t}-{c}-{z}-{y}-{x}"
                 img = config.cache.get(cache_key, default=None, retry=True)
                 if img is not None:
-                    logger.info("cached chunck found")
+                    logger.info("osd cache found")
             if img is None:
                 chunk = img_obj[r,
                                 slice(t,t+1),
@@ -177,7 +177,6 @@ def setup_openseadragon(app, config):
                                 slice(y[0],y[1]),
                                 slice(x[0],x[1]),
                                 ]
-                logger.info("chunck returned from disk")
                 logger.info(chunk.shape)
                 if len(chunk.shape) == 3 and chunk.shape[2] == 3:  # Color image
                     chunk = cv2.cvtColor(chunk, cv2.COLOR_RGB2BGR)
@@ -201,7 +200,7 @@ def setup_openseadragon(app, config):
                     config.cache.set(
                         cache_key, img, expire=None, tag=datapath, retry=True
                     )
-                    logger.info("chunk has been saved")
+                    logger.info("osd cache saved")
             return Response(img, mimetype="image/png")
         elif utils.split_html(datapath)[-1].endswith("info"):
             try:

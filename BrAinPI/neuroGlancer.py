@@ -678,7 +678,7 @@ def setup_neuroglancer(app, config):
                 key = f"ng_{datapath}-{res}-{x}-{y}-{z}"
                 img = config.cache.get(key, default=None, retry=True)
                 if img is not None:
-                    logger.info("cached chunck found")
+                    logger.info("ng cache found")
 
             if img is None:
                 img = config.opendata[datapath][
@@ -689,7 +689,6 @@ def setup_neuroglancer(app, config):
                     slice(y[0], y[1]),
                     slice(x[0], x[1]),
                 ]
-                logger.info("chunck returned from disk")
                 while img.ndim > 4:
                     img = np.squeeze(img, axis=0)
 
@@ -701,7 +700,7 @@ def setup_neuroglancer(app, config):
 
                 if config.cache is not None:
                     config.cache.set(key, img, expire=None, tag=datapath, retry=True)
-                    logger.info("chunk has been saved")
+                    logger.info("ng cache saved")
             # Flask return of bytesIO as file
             # return Response(response=img, status=200,
             #                 mimetype="application/octet_stream")

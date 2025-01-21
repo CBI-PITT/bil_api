@@ -14,6 +14,7 @@ from zarr._storage.store import Store, BaseStore
 from typing import Union
 Path = Union[str, bytes, None]
 StoreLike = Union[BaseStore, MutableMapping]
+from logger_tools import logger
 
 class disk_cache_store(Store):
     """
@@ -53,12 +54,12 @@ class disk_cache_store(Store):
         
         self._cache_key_prefix = self.uuid + '_'
         
-        print(self._store)
-        print(self._diskcache_object)
-        print(self._meta_data_expire)
-        print(self._metadata_keys)
-        print(self.uuid)
-        print(self._cache_key_prefix)
+        logger.info(self._store)
+        logger.info(self._diskcache_object)
+        logger.info(self._meta_data_expire)
+        logger.info(self._metadata_keys)
+        logger.info(self.uuid)
+        logger.info(self._cache_key_prefix)
         
 
     # def __getstate__(self):

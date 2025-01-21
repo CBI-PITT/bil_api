@@ -266,6 +266,14 @@ class tiff_loader:
         Returns:
             np.ndarray: The requested image slice.
         """
+        incomingSlices = (r, t, c, z, y, x)
+        logger.info(incomingSlices)
+        if self.cache is not None:
+            key = f"{self.file_ino + self.modification_time}-{r}-{t}-{c}-{z}-{y}-{x}"
+            result = self.cache.get(key, default=None, retry=True)
+            if result is not None:
+                logger.info(f"loader cache found: {incomingSlices}")
+                return result
         list_tp = None
         if self.type.endswith("S"):
             list_tp = [0] * (len(self.type) - 1)
@@ -314,11 +322,22 @@ class tiff_loader:
         # numpy_array = np.random.randint(0, 255, size=(256, 256, 3), dtype=np.uint8)
         # return numpy_array
 
-        cache_key = f"{self.file_ino + self.modification_time}-{r}-{t}-{c}-{z}-{y}-{x}"
+        # cache_key = f"{self.file_ino + self.modification_time}-{r}-{t}-{c}-{z}-{y}-{x}"
         if self.cache is not None:
+            # print("Cache Status:")
+            # shards_limit = self.cache.size_limit / (1024 * 1024 * 1024)  # Convert size_limit to GB
+            # shards_len = len(self.cache._shards)  # Number of shards
+            # total_size = shards_limit * shards_len  # Total size limit in GB
+            # current_size = self.cache.volume() / (1024 * 1024 * 1024)  # Current size in GB
+
+            # print(f"  Shards limit (per shard): {shards_limit} GB")
+            # print(f"  Number of shards: {shards_len}")
+            # print(f"  Total size limit: {total_size} GB")
+            # print(f"  Current size: {current_size} GB\n") 
             self.cache.set(
-                cache_key, result, expire=None, tag=self.datapath, retry=True
+                key, result, expire=None, tag=self.file_ino + self.modification_time, retry=True
             )
+            logger.info(f"loader cache saved")
         return result
 
     # def __getitem__(self, key):

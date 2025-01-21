@@ -13,10 +13,6 @@ def get_cache():
 
     Returns:
         FanoutCache: A configured disk-based cache object, or None if no cache location is specified.
-
-    Example:
-        >>> cache = get_cache()
-        >>> print(cache)
     """
     if os.name == 'nt':
         cacheLocation = settings.get('disk_cache', 'location_win')
@@ -48,12 +44,12 @@ from collections import OrderedDict
 import uuid
 import functools
 class cache_head_space:
-    '''
+    """
     This cache takes the free_ram_gb argument which defines the amount of ram that you want to keep
     FREE on the system that the cache is active.  Thus, with free_ram_gb=20 will ensure that the cache can
     grow until 20GB of RAM remain available on the system.  At this point, the cache will trim itself
     to ensure that 20GB of RAM remains free at all times.
-    '''
+    """
 
     def __init__(self, free_ram_gb=20):
         """

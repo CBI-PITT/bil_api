@@ -19,6 +19,17 @@ import multiprocessing
 from utils import calculate_hash, get_directory_size, delete_oldest_files
 
 def separate_process_generation(inp, out, time_axe):
+    """
+    Generate a Zarr dataset from a NIfTI file in a separate process.
+
+    This function converts a NIfTI file into a Zarr dataset. The conversion process is handled
+    using the `nii2zarr` function, which supports multi-resolution image storage.
+
+    Args:
+        inp (str): The file path to the input NIfTI file.
+        out (str): The directory path where the output Zarr dataset will be stored.
+        time_axe (bool): If True, the time axis is ignored during the conversion process.
+    """
     nii2zarr(inp, out, no_time=time_axe)
 
 # def calculate_hash(input_string):
@@ -294,15 +305,19 @@ class nifti_zarr_loader:
         pyramid_image_location,
     ):
         """
-        Generate pyramid representations for the NIfTI file.
+        Generate a pyramid structure for a NIfTI file and store it in a specified location.
+
+        This method processes a NIfTI file to create a multi-resolution pyramid structure for 
+        efficient image storage and retrieval. It handles multiprocessing, file locking, and 
+        storage management to ensure safe and efficient execution.
 
         Args:
-            nifti_file_location (str): Path to the NIfTI file.
-            time_axe (bool): Whether to include a time axis.
-            hash_value (str): Unique hash for the file.
-            pyramids_images_store (str): Path to the pyramid images store.
-            pyramids_images_store_dir (str): Directory for storing pyramid images.
-            pyramid_image_location (str): Final location of the pyramid image.
+            nifti_file_location (str): The file path to the input NIfTI file.
+            time_axe (bool): If True, the time axis is ignored during the conversion process.
+            hash_value (str): A unique hash value identifying the image.
+            pyramids_images_store (str): The directory where pyramid images are stored.
+            pyramids_images_store_dir (str): The specific directory for storing the pyramid image.
+            pyramid_image_location (str): The final location of the generated pyramid image.
         """
         os.makedirs(pyramids_images_store_dir, exist_ok=True)
         file_temp = pyramid_image_location.replace(hash_value, "temp_" + hash_value)
@@ -474,7 +489,7 @@ class nifti_zarr_loader:
             # key = self.datapath + '_getSlice_' + str(incomingSlices)
             result = self.cache.get(key, default=None, retry=True)
             if result is not None:
-                logger.info(f"Returned from cache: {incomingSlices}")
+                logger.info(f"loader cache found")
                 return result
         list_tp = [0] * self.ndim
         if self.dim_pos_dic.get("t") != None:
@@ -495,7 +510,18 @@ class nifti_zarr_loader:
         result = result.astype(self.dtype)
         logger.info(result.shape)
         if self.cache is not None:
+            # print("Cache Status:")
+            # shards_limit = self.cache.size_limit / (1024 * 1024 * 1024)  # Convert size_limit to GB
+            # shards_len = len(self.cache._shards)  # Number of shards
+            # total_size = shards_limit * shards_len  # Total size limit in GB
+            # current_size = self.cache.volume() / (1024 * 1024 * 1024)  # Current size in GB
+
+            # print(f"  Shards limit (per shard): {shards_limit} GB")
+            # print(f"  Number of shards: {shards_len}")
+            # print(f"  Total size limit: {total_size} GB")
+            # print(f"  Current size: {current_size} GB\n") 
             self.cache.set(key, result, expire=None, tag=self.datapath, retry=True)
+            logger.info(f"loader cache saved")
             # test = True
             # while test:
             #     # logger.info('Caching slice')

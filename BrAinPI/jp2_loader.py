@@ -300,6 +300,21 @@ class jp2_loader:
         pyramids_images_store_dir,
         pyramid_image_location,
     ):
+        """
+        Generate a pyramid structure for a JP2 image and store it in a specified location.
+
+        This method creates a multi-resolution pyramid structure for efficient image storage and retrieval. 
+        It handles multiprocessing, file locking, and storage management to ensure the process runs safely 
+        and efficiently.
+
+        Args:
+            jp2_img (np.ndarray): The JP2 image to process.
+            factor (int): The downscaling factor for generating sub-resolutions.
+            hash_value (str): A unique hash value identifying the image.
+            pyramids_images_store (str): The directory where pyramid images are stored.
+            pyramids_images_store_dir (str): The specific directory for storing the pyramid image.
+            pyramid_image_location (str): The final location of the generated pyramid image.
+        """
         os.makedirs(pyramids_images_store_dir, exist_ok=True)
         file_temp = pyramid_image_location.replace(hash_value, "temp_" + hash_value)
         file_temp_lock = file_temp + ".lock"

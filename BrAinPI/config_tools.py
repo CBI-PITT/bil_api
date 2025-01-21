@@ -18,10 +18,10 @@ def get_config(file='settings.ini',allow_no_value=True):
     """
     Load configuration settings from the created setting.ini file.
 
-    This function reads configuration settings from a specified INI file.
-    Including support for Sphinx documentation generation if the file does not 
-    exist, it will fall back to a template version of the file.
-    It is primarily used for loading settings.
+    This function reads configuration settings from a specified settings,ini file.
+    It is primarily used for loading settings. It can be used for Sphinx 
+    documentation generation if the file does not exist, it will fall back to a 
+    template version of the file.
 
     Args:
         file (str, optional): The name of the INI file to load. Defaults to 'settings.ini'.
@@ -94,6 +94,16 @@ class config:
         evictionPolicy Options:
             "least-recently-stored" #R only
             "least-recently-used"  #R/W (maybe a performace hit but probably best cache option)
+        Initialize the `config` object.
+
+        This method sets up the necessary configurations, establishes connections to pyramid images,
+        and initializes a persistent cache for efficient data management.
+
+        Args:
+            opendata (dict): A dictionary to store open datasets, with keys as dataset identifiers and values as dataset objects.
+            settings (configparser.ConfigParser): Loaded configuration settings from `settings.ini`.
+            pyramid_images_connection (dict): A mapping of hash values to pyramid image paths, built from configuration settings.
+            cache (diskcache.FanoutCache): A persistent cache object for managing dataset resources efficiently.
         """
         self.opendata = {}
         self.settings = get_config('settings.ini')

@@ -5,7 +5,7 @@ from loguru import logger
 
 settings = get_config("settings.ini")
 
-ENVIRONMENT = settings.get("app", "environment")
+ENVIRONMENT = settings.get("app", "log_engine")
 # Logging setting
 # Remove the default logger to avoid duplicate logs
 def setup_logger():

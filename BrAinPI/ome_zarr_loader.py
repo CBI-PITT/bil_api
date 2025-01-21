@@ -234,13 +234,24 @@ class ome_zarr_loader:
             # key = self.location + '_getSlice_' + str(incomingSlices)
             result = self.cache.get(key, default=None, retry=True)
             if result is not None:
-                logger.info(f'Returned from cache: {incomingSlices}')
+                logger.info(f'loader cache found')
                 return result
         
         result = self.arrays[r][t,c,z,y,x]
 
         if self.cache is not None:
+            # print("Cache Status:")
+            # shards_limit = self.cache.size_limit / (1024 * 1024 * 1024)  # Convert size_limit to GB
+            # shards_len = len(self.cache._shards)  # Number of shards
+            # total_size = shards_limit * shards_len  # Total size limit in GB
+            # current_size = self.cache.volume() / (1024 * 1024 * 1024)  # Current size in GB
+
+            # print(f"  Shards limit (per shard): {shards_limit} GB")
+            # print(f"  Number of shards: {shards_len}")
+            # print(f"  Total size limit: {total_size} GB")
+            # print(f"  Current size: {current_size} GB\n") 
             self.cache.set(key, result, expire=None, tag=self.location, retry=True)
+            logger.info(f'loader cache saved')
             # test = True
             # while test:
             #     # logger.info('Caching slice')

@@ -33,6 +33,14 @@ from flask_login import (LoginManager,
                          logout_user)
 
 def user_info():
+    """
+    Retrieve information about the currently logged-in user.
+
+    Returns:
+        dict: A dictionary containing the following keys:
+              - 'is_authenticated': Whether the user is authenticated (bool).
+              - 'id': The user's ID if authenticated, otherwise None.
+    """
     return {'is_authenticated':current_user.is_authenticated, 'id':current_user.id if current_user.is_authenticated else None}
 
 class User(UserMixin):
@@ -40,6 +48,21 @@ class User(UserMixin):
         self.id = username
 
 def setup_auth(app):
+    """
+    Set up user authentication and session management for the Flask application.
+
+    Configures:
+    - Secure session cookies.
+    - Login manager for managing user sessions.
+    - Rate limiter to prevent brute force login attempts.
+    - Routes for login, logout, and profile pages.
+
+    Args:
+        app (Flask): The Flask application instance.
+
+    Returns:
+        tuple: A tuple containing the modified Flask app and the LoginManager instance.
+    """
     ## This import must remain here else circular import error
     from brain_api_main import settings
     from flask_limiter import Limiter
@@ -167,6 +190,17 @@ def setup_auth(app):
 
 
 def setup_NO_auth(app):
+    """
+    Set up a Flask application with disabled authentication.
+
+    This function disables all login routes and returns 404 errors for any login-related requests.
+
+    Args:
+        app (Flask): The Flask application instance.
+
+    Returns:
+        tuple: A tuple containing the modified Flask app and the LoginManager instance.
+    """
     ## This import must remain here else circular import error
     from brain_api_main import settings
     from flask_limiter import Limiter
@@ -227,12 +261,21 @@ def setup_NO_auth(app):
 
 
 def domain_auth(user_name,password,domain_server=r"ldap://localhost:389",domain="mydomain"):
-    '''
+    """
     Attempts a simple verification of user account on windows domain server
-    Return True if auth succeeded
-    Return False if auth was rejected
-    Return None if an error occured
-    '''
+
+    Args:
+        user_name (str): The username to authenticate.
+        password (str): The user's password.
+        domain_server (str, optional): The domain server's address (LDAP URI). Defaults to 'ldap://localhost:389'.
+        domain (str, optional): The domain name. Defaults to "mydomain".
+
+    Returns:
+        bool or None:
+            - True if authentication succeeds.
+            - False if authentication fails.
+            - None if an error occurs during the connection.
+    """
  
     from ldap3 import Server, Connection, ALL, NTLM
     
